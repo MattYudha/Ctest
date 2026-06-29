@@ -313,10 +313,6 @@ class LetterController extends Controller
             return redirect()->route('letters.index')->with('error', 'Letter configuration not set.');
         }
 
-        $config->current_number++;
-        // passing the $letter object to pull the user's department data
-
-        $config->save();
 
         $letter->update([
             'status' => 'pending',
@@ -344,6 +340,8 @@ class LetterController extends Controller
 
         $config = LetterConfiguration::first();
         $config->current_number++;
+        $config->save();
+        
         $letterNumber = $this->generateLetterNumber($config, $letter);
 
         $letter->update([
