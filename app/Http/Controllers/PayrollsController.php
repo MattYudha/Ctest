@@ -17,6 +17,11 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Finance\FinancialTransactionController;
 use Illuminate\Validation\ValidationException;
 use App\Services\HolidayService;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class PayrollsController extends Controller
 {
@@ -772,104 +777,74 @@ class PayrollsController extends Controller
         ]);
 
         // get payroll data with employee relations
-        $payrolls = Payroll::with(['employee.department'])
+        $payrolls = Payroll::with(['employee.department', 'employee.bankAccounts'])
             ->whereIn('id', $request->ids)
             ->get();
 
-        $fileName = 'Payrolls_Export_' . date('Y_m_d_His') . '.csv';
+        $templatePath = storage_path('app/templates/kopra_payroll_template.xlsx');
+        if (!file_exists($templatePath)) {
+            return redirect()->back()->with('error', 'Format template KOPRA not found in storage/app/templates/.');
+        }
+
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($templatePath);
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // Update the Transfer Date on the template to today
+        $sheet->setCellValue('B14', date('Ymd'));
+
+        // Clear example rows (19 to 30)
+        for ($r = 19; $r <= 30; $r++) {
+            for ($c = 'A'; $c <= 'V'; $c++) {
+                $sheet->setCellValue($c . $r, '');
+            }
+        }
+
+        $row = 19;
+        foreach ($payrolls as $index => $payroll) {
+            $employee = $payroll->employee;
+            $bankAccount = $employee ? $employee->bankAccounts->first() : null;
+            
+            $destinationAccNo = $bankAccount ? $bankAccount->account_number : 'Belum ada di sistem';
+            $destinationBankCode = $bankAccount ? ($bankAccount->bank_code ?? 'Belum ada di sistem') : 'Belum ada di sistem';
+            $destinationAccName = $bankAccount ? ($bankAccount->account_name ?? ($employee->fullname ?? 'Unknown')) : ($employee->fullname ?? 'Unknown');
+
+            $sheet->setCellValue('A' . $row, $index + 1);
+            $sheet->setCellValue('B' . $row, 'Belum ada di sistem');
+            $sheet->setCellValueExplicit('C' . $row, $destinationAccNo, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue('D' . $row, 'IDR');
+            $sheet->setCellValue('E' . $row, (float)($payroll->net_salary ?? 0));
+            $sheet->setCellValue('F' . $row, $destinationAccName);
+            $sheet->setCellValue('G' . $row, $employee->address ?? 'Belum ada di sistem');
+            $sheet->setCellValue('H' . $row, $destinationBankCode);
+            $sheet->setCellValue('I' . $row, 'Belum ada di sistem');
+            $sheet->setCellValue('J' . $row, 'GAJI/' . $payroll->period_month . '/' . $payroll->period_year);
+            $sheet->setCellValue('K' . $row, 'Pembayaran Payroll ' . Carbon::create()->month($payroll->period_month)->translatedFormat('F') . ' ' . $payroll->period_year);
+            $sheet->setCellValue('L' . $row, $employee->email ?? 'Belum ada di sistem');
+            $sheet->setCellValue('M' . $row, 'Belum ada di sistem');
+            $sheet->setCellValue('N' . $row, 'Belum ada di sistem');
+            $sheet->setCellValue('O' . $row, 'Belum ada di sistem');
+            $sheet->setCellValue('P' . $row, 'Belum ada di sistem');
+            $sheet->setCellValue('Q' . $row, 'Belum ada di sistem');
+            $sheet->setCellValue('R' . $row, 'Belum ada di sistem');
+            $sheet->setCellValue('S' . $row, 'Belum ada di sistem');
+            $sheet->setCellValue('T' . $row, 'Belum ada di sistem');
+            $sheet->setCellValue('U' . $row, 'Belum ada di sistem');
+            $sheet->setCellValue('V' . $row, 'Belum ada di sistem');
+
+            $row++;
+        }
+
+        $fileName = 'Payment_Export_KOPRA_' . date('Y_m_d_His') . '.xlsx';
+        $writer = new Xlsx($spreadsheet);
 
         $headers = [
-            'Content-type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=$fileName",
-            'Pragma' => 'no-cache',
-            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires' => '0',
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+            'Cache-Control' => 'max-age=0',
         ];
 
-        // csv header / column titles (as requested: include all)
-        $columns = [
-            'Payroll ID',
-            'Employee Name',
-            'NIK',
-            'Department',
-            'Month',
-            'Year',
-            'Status',
-            'Basic Salary',
-            'Transport Allowance',
-            'Meal Allowance',
-            'Position Allowance',
-            'Overtime Hours',
-            'Overtime Pay',
-            'Performance Bonus',
-            'Attendance Bonus',
-            'Other Bonus',
-            'Bonus Notes',
-            'Working Days',
-            'Attendance',
-            'Late (x)',
-            'Late Deduction',
-            'Absent (Days)',
-            'Absent Deduction',
-            'Penalty',
-            'Penalty Notes',
-            'Health BPJS',
-            'Employment BPJS',
-            'Income Tax (PPh 21)',
-            'Other Deductions',
-            'Deduction Notes',
-            'TOTAL EARNINGS',
-            'TOTAL DEDUCTIONS',
-            'NET SALARY (TAKE HOME PAY)',
-            'Payment Date',
-        ];
-
-        $callback = function () use ($payrolls, $columns) {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, $columns);
-
-            foreach ($payrolls as $p) {
-                $row = [
-                    $p->id,
-                    $p->employee->fullname ?? 'Unknown',
-                    $p->employee->nik ?? '-',
-                    $p->employee->department->name ?? '-',
-                    $p->period_month,
-                    $p->period_year,
-                    strtoupper($p->status),
-                    $p->salary,
-                    $p->transport_allowance,
-                    $p->meal_allowance,
-                    $p->position_allowance,
-                    $p->overtime_hours,
-                    $p->overtime_amount,
-                    $p->performance_bonus,
-                    $p->attendance_bonus,
-                    $p->other_bonus,
-                    $p->bonus_notes,
-                    $p->working_days,
-                    $p->days_present,
-                    $p->late_count,
-                    $p->late_deduction,
-                    $p->absent_count,
-                    $p->absent_deduction,
-                    $p->penalty_amount,
-                    $p->penalty_notes,
-                    $p->bpjs_kes,
-                    $p->bpjs_tk,
-                    $p->pph21,
-                    $p->other_deduction,
-                    $p->deduction_notes,
-                    $p->total_earnings,
-                    $p->total_deductions,
-                    $p->net_salary,
-                    $p->pay_date ? \Carbon\Carbon::parse($p->pay_date)->format('Y-m-d H:i') : '-',
-                ];
-
-                fputcsv($file, $row);
-            }
-
-            fclose($file);
+        $callback = function () use ($writer) {
+            $writer->save('php://output');
         };
 
         return response()->stream($callback, 200, $headers);
@@ -889,40 +864,130 @@ class PayrollsController extends Controller
             return redirect()->back()->with('error', 'No paid payroll records were found in the selected data.');
         }
 
-        $fileName = 'payroll_data_paid_' . now()->format('Ymd_His') . '.csv';
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Paid Payrolls Data');
 
-        $headers = [
-            'Content-type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=$fileName",
-            'Pragma' => 'no-cache',
-            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires' => '0',
+        // Styling for headers
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FF0B5ED7'], // Blue header
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+            'borders' => [
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN],
+            ],
         ];
 
-        $columns = ['NIK', 'NPWP', 'Employee Name', 'Period', 'Salary', 'Nominal PPH-21', 'Net Salary'];
+        // Column definitions
+        $columns = [
+            'A' => 'No',
+            'B' => 'Nama Karyawan',
+            'C' => 'NIK',
+            'D' => 'NPWP',
+            'E' => 'Periode',
+            'F' => 'Gaji Awal',
+            'G' => 'Total Penambahan',
+            'H' => 'Total Pengurangan',
+            'I' => 'Total Setelah Pengurangan & Penambahan (Gaji Akhir)',
+            'J' => 'Tarif PPh 21',
+            'K' => 'Potongan PPh 21',
+            'L' => 'Gaji Bersih (Take Home Pay)'
+        ];
 
-        $callback = function () use ($payrolls, $columns) {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, $columns);
+        // Set Headers
+        foreach ($columns as $col => $title) {
+            $sheet->setCellValue($col . '1', $title);
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+        $sheet->getStyle('A1:L1')->applyFromArray($headerStyle);
+        $sheet->getRowDimension(1)->setRowHeight(30);
 
-            foreach ($payrolls as $payroll) {
-                // Carbon::setLocale('id');
-                $salary = ($payroll->net_salary ?? 0) + ($payroll->pph21 ?? 0);
+        // Fill Data
+        $row = 2;
+        foreach ($payrolls as $index => $payroll) {
+            $period = Carbon::create()->month($payroll->period_month)->translatedFormat('F') . ' ' . $payroll->period_year;
 
-                $period = Carbon::create()->month($payroll->period_month)->translatedFormat('F');
+            // Calculations based on the requirements
+            $gajiAwal = (float)($payroll->salary ?? 0) 
+                + (float)($payroll->transport_allowance ?? 0) 
+                + (float)($payroll->meal_allowance ?? 0) 
+                + (float)($payroll->position_allowance ?? 0);
+                
+            $totalPenambahan = (float)($payroll->overtime_amount ?? 0) 
+                + (float)($payroll->performance_bonus ?? 0) 
+                + (float)($payroll->attendance_bonus ?? 0) 
+                + (float)($payroll->other_bonus ?? 0) 
+                + (float)($payroll->reimbursement ?? 0);
+                
+            $totalPengurangan = (float) ($payroll->total_deductions ?? 0);
+            
+            // Total After Deductions = (Gaji Awal + Penambahan) - Pengurangan
+            $totalSetelahPengurangan = ($gajiAwal + $totalPenambahan) - $totalPengurangan;
+            
+            // PPH 21
+            $pph21Rate = (float) ($payroll->employee->pph21_rate ?? 0);
+            $pph21Amount = (float) ($payroll->pph21 ?? 0);
 
-                fputcsv($file, [
-                    $payroll->employee->nik ? $payroll->employee->nik : '-',
-                    $payroll->employee->npwp ? $payroll->employee->npwp : '-',
-                    $payroll->employee->fullname ?? 'Unknown',
-                    $period,
-                    (int) $salary,
-                    (int) ($payroll->pph21 ?? 0),
-                    (int) ($payroll->net_salary ?? 0),
-                ]);
-            }
+            $netSalary = (float) ($payroll->net_salary ?? 0);
 
-            fclose($file);
+            $sheet->setCellValue('A' . $row, $index + 1);
+            $sheet->setCellValue('B' . $row, $payroll->employee->fullname ?? 'Unknown');
+            $sheet->setCellValue('C' . $row, "'" . ($payroll->employee->nik ?? '-')); // Prevent scientific notation for large NIK
+            $sheet->setCellValue('D' . $row, "'" . ($payroll->employee->npwp ?? '-'));
+            $sheet->setCellValue('E' . $row, $period);
+            $sheet->setCellValue('F' . $row, $gajiAwal);
+            $sheet->setCellValue('G' . $row, $totalPenambahan);
+            $sheet->setCellValue('H' . $row, $totalPengurangan);
+            $sheet->setCellValue('I' . $row, $totalSetelahPengurangan);
+            $sheet->setCellValue('J' . $row, $pph21Rate . '%');
+            $sheet->setCellValue('K' . $row, $pph21Amount);
+            $sheet->setCellValue('L' . $row, $netSalary);
+
+            $row++;
+        }
+
+        // Apply formatting for currency columns
+        $lastRow = $row - 1;
+        if ($lastRow >= 2) {
+            $sheet->getStyle('F2:I' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle('K2:L' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+            
+            // Add borders to data
+            $sheet->getStyle('A2:L' . $lastRow)->applyFromArray([
+                'borders' => [
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN],
+                ],
+                'alignment' => [
+                    'vertical' => Alignment::VERTICAL_CENTER,
+                ],
+            ]);
+            
+            // Center align No, NIK, NPWP, Periode, PPh 21 Rate
+            $sheet->getStyle('A2:A' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('C2:E' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('J2:J' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        }
+
+        $fileName = 'payroll_data_paid_' . now()->format('Ymd_His') . '.xlsx';
+
+        // Output to browser
+        $writer = new Xlsx($spreadsheet);
+        
+        $headers = [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+            'Cache-Control' => 'max-age=0',
+        ];
+
+        $callback = function () use ($writer) {
+            $writer->save('php://output');
         };
 
         return response()->stream($callback, 200, $headers);

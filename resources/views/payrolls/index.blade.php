@@ -36,7 +36,7 @@
                                     disabled
                                 >
                                     <i class="bi bi-file-earmark-spreadsheet me-1"></i>
-                                    Export Payment CSV (<span id="countSelected">0</span>)
+                                    Export Payment XLSX (<span id="countSelected">0</span>)
                                 </button>
                             </div>
 
@@ -48,7 +48,7 @@
                                     disabled
                                 >
                                     <i class="bi bi-file-earmark-check me-1"></i>
-                                    Export Paid Data CSV (<span id="countDataSelected">0</span>)
+                                    Export Paid Data XLSX (<span id="countDataSelected">0</span>)
                                 </button>
                             </div>
 
