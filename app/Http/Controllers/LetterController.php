@@ -357,32 +357,35 @@ class LetterController extends Controller
             // decode the json we saved during creation
             $meta = json_decode($letter->meta_data, true);
 
-            if ($meta) {
-                $office = OfficeLocation::find($meta['lokasi_kantor']);
+            if (is_array($meta)) {
+                $lokasiKantorId = $meta['lokasi_kantor'] ?? null;
+                $office = $lokasiKantorId ? OfficeLocation::find($lokasiKantorId) : null;
+                $tanggal = $meta['tanggal_lupa_absen'] ?? $meta['tanggal_telat_absen'] ?? null;
 
-                Presence::updateOrCreate(
-                    // parameter 1: search condition
-                    [
-                        'employee_id' => $letter->user->employee->id,
-                        'date' => $meta['tanggal_lupa_absen'] ?? $meta['tanggal_telat_absen'],
-                    ],
-                    // parameter 2: data to be inserted or updated
-                    [
-                        'check_in' => ($meta['tanggal_lupa_absen'] ?? $meta['tanggal_telat_absen']) . ' 09:00:00',
-                        'check_out' => ($meta['tanggal_lupa_absen'] ?? $meta['tanggal_telat_absen']) . ' 17:00:00',
-                        'latitude' => $office->latitude ?? '0.000000',
-                        'longitude' => $office->longitude ?? '0.000000',
-                        'check_out_latitude' => $office->latitude ?? '0.000000',
-                        'check_out_longitude' => $office->longitude ?? '0.000000',
-                        'office_location_id' => $meta['lokasi_kantor'],
-                        'work_type' => $meta['tipe_kehadiran_kerja'],
-                        'status' => 'present',
-                        'is_late' => 0,
-                        'photo_path' => 'assets/images/default/admin-manual-presence.png',
-                        'notes' =>
-                            'Manually created/updated by letter system, letter number : ' . $letter->letter_number,
-                    ],
-                );
+                if ($tanggal) {
+                    Presence::updateOrCreate(
+                        // parameter 1: search condition
+                        [
+                            'employee_id' => $letter->user->employee->id,
+                            'date' => $tanggal,
+                        ],
+                        // parameter 2: data to be inserted or updated
+                        [
+                            'check_in' => $tanggal . ' 09:00:00',
+                            'check_out' => $tanggal . ' 17:00:00',
+                            'latitude' => $office->latitude ?? '0.000000',
+                            'longitude' => $office->longitude ?? '0.000000',
+                            'check_out_latitude' => $office->latitude ?? '0.000000',
+                            'check_out_longitude' => $office->longitude ?? '0.000000',
+                            'office_location_id' => $lokasiKantorId,
+                            'work_type' => $meta['tipe_kehadiran_kerja'] ?? 'WFO',
+                            'status' => 'present',
+                            'is_late' => 0,
+                            'photo_path' => 'assets/images/default/admin-manual-presence.png',
+                            'notes' => 'Manually created/updated by letter system, letter number : ' . $letter->letter_number,
+                        ]
+                    );
+                }
             }
         }
 
