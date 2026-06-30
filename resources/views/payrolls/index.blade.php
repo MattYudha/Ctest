@@ -217,12 +217,12 @@
         {{-- table container --}}
         <div class="card shadow-sm border-0" id="table-card" style="display: none; border-radius: 15px">
             <div class="card-body p-0">
-                <div class="px-4 pt-4 pb-2 border-bottom d-flex align-items-center">
-                    <h5 class="mb-0 fw-bold text-primary" id="table-period-title">
-                        <i class="bi bi-calendar-check me-2"></i> Payroll Data Period
+                <div class="px-4 pt-4 pb-3 border-bottom d-flex align-items-center mb-3">
+                    <h5 class="mb-0 fw-bold text-body" id="table-period-title">
+                        <i class="bi bi-calendar-check text-primary me-2"></i> Payroll Data Period
                     </h5>
                 </div>
-                <div class="table-responsive p-4 pt-3">
+                <div class="table-responsive p-4 pt-2">
                     <table class="table table-striped table-hover align-middle w-100" id="payroll-table">
                         <thead>
                             <tr>
@@ -328,7 +328,7 @@
                         $('#table-card').fadeIn();
                         
                         let monthName = getSelectedMonthName();
-                        $('#table-period-title').html(`<i class="bi bi-calendar-check me-2"></i> Payroll Data Period: ${monthName} ${year}`);
+                        $('#table-period-title').html(`<i class="bi bi-calendar-check text-primary me-2"></i> Payroll Data Period: ${monthName} ${year}`);
 
                         if (!table) {
                             table = $('#payroll-table').DataTable({

@@ -50,7 +50,7 @@
                             <label for="employee_id" class="form-label fw-semibold text-secondary"
                                 >Employee <span class="text-danger">*</span></label
                             >
-                            <select name="employee_id" id="employee_id" class="form-select" required>
+                            <select id="employee_id" class="form-select bg-light" disabled>
                                 <option value="">-- Select Employee --</option>
                                 @foreach ($employees as $emp)
                                     <option
@@ -66,6 +66,7 @@
                                     </option>
                                 @endforeach
                             </select>
+                            <input type="hidden" name="employee_id" value="{{ old('employee_id', $payroll->employee_id) }}">
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -73,7 +74,7 @@
                             <label for="period_month" class="form-label fw-semibold text-secondary"
                                 >Month <span class="text-danger">*</span></label
                             >
-                            <select name="period_month" id="period_month" class="form-select" required>
+                            <select id="period_month" class="form-select bg-light" disabled>
                                 @php
                                     $months = [
                                         'January',
@@ -102,6 +103,7 @@
                                     </option>
                                 @endforeach
                             </select>
+                            <input type="hidden" name="period_month" value="{{ old('period_month', $payroll->period_month) }}">
                         </div>
                     </div>
                     <div class="col-md-2">
@@ -109,7 +111,7 @@
                             <label for="period_year" class="form-label fw-semibold text-secondary"
                                 >Year <span class="text-danger">*</span></label
                             >
-                            <select name="period_year" id="period_year" class="form-select" required>
+                            <select id="period_year" class="form-select bg-light" disabled>
                                 @for ($y = date('Y') - 2; $y <= date('Y') + 1; $y++)
                                     <option
                                         value="{{ $y }}"
@@ -122,6 +124,7 @@
                                     </option>
                                 @endfor
                             </select>
+                            <input type="hidden" name="period_year" value="{{ old('period_year', $payroll->period_year) }}">
                         </div>
                     </div>
                     <div class="col-md-3">
