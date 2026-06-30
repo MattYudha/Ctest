@@ -152,6 +152,9 @@
     <script>
         // === capture active user data from php to javascript ===
         const currentUserData = @json (\App\Constants\LetterTagConfig::getAutoFillValues(auth()->user()));
+        const existingMetaData = @json(json_decode($letter->meta_data, true) ?: []);
+        
+        let isInitialLoad = true;
 
         $(document).ready(function () {
             let isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
@@ -213,9 +216,11 @@
 
                 if (templateId) {
                     // special alert if employee changes template while in edit mode
-                    if (!confirm('Changing the template will reset the existing document text. Continue?')) {
-                        $(this).val('{{ $letter->letter_template_id }}'); // return to the original choice
-                        return;
+                    if (!isInitialLoad) {
+                        if (!confirm('Changing the template will reset the existing document text. Continue?')) {
+                            $(this).val('{{ $letter->letter_template_id }}'); // return to the original choice
+                            return;
+                        }
                     }
 
                     $.ajax({
@@ -223,11 +228,15 @@
                         type: 'GET',
                         dataType: 'json',
                         success: function (data) {
-                            tinymce.get('content').setContent(data.content || '');
-                            if (data.template) {
-                                $('#subject').val(data.template.name);
-                                $('#letter_type').val(data.template.type);
+                            if (!isInitialLoad) {
+                                tinymce.get('content').setContent(data.content || '');
+                                if (data.template) {
+                                    $('#subject').val(data.template.name);
+                                    $('#letter_type').val(data.template.type);
+                                }
                             }
+                            
+                            isInitialLoad = false; // turn off initial load flag
 
                             if (data.tags && data.tags.length > 0) {
                                 container.append(
@@ -236,7 +245,11 @@
 
                                 data.tags.forEach(function (tag) {
                                     let labelName = tag.tag_name.replace(/_/g, ' ').toUpperCase();
-                                    let defaultValue = tag.default_value ? tag.default_value : '';
+                                    
+                                    // prioritize existing metadata, then fallback to default value
+                                    let defaultValue = (existingMetaData && existingMetaData[tag.tag_name] !== undefined) 
+                                                        ? existingMetaData[tag.tag_name] 
+                                                        : (tag.default_value ? tag.default_value : '');
 
                                     // === new logic: check auto fill ===
                                     let isReadOnly = '';
@@ -305,6 +318,11 @@
                     });
                 }
             });
+
+            // Trigger change event to load tags if template is already selected
+            if ($('#letter_template_id').val()) {
+                $('#letter_template_id').trigger('change');
+            }
         });
     </script>
 @endpush

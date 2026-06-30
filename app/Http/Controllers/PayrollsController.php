@@ -42,9 +42,7 @@ class PayrollsController extends Controller
 
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('period', function ($row) {
-                    return $row->period_label;
-                })
+
                 ->addColumn('employee_name', function ($row) {
                     $name = $row->employee?->fullname ?? '<em>Unknown</em>';
                     $nik = $row->employee?->nik ?? '-';
@@ -189,6 +187,7 @@ class PayrollsController extends Controller
             'performance_bonus' => 'nullable|numeric|min:0',
             'attendance_bonus' => 'nullable|numeric|min:0',
             'other_bonus' => 'nullable|numeric|min:0',
+            'reimbursement' => 'nullable|numeric|min:0',
             'bonus_notes' => 'nullable|string',
             'working_days' => 'nullable|integer|min:0',
             'days_present' => 'nullable|integer|min:0',
@@ -215,6 +214,7 @@ class PayrollsController extends Controller
             'performance_bonus',
             'attendance_bonus',
             'other_bonus',
+            'reimbursement',
             'late_deduction',
             'absent_deduction',
             'penalty_amount',
@@ -290,6 +290,7 @@ class PayrollsController extends Controller
             'performance_bonus' => 'nullable|numeric|min:0',
             'attendance_bonus' => 'nullable|numeric|min:0',
             'other_bonus' => 'nullable|numeric|min:0',
+            'reimbursement' => 'nullable|numeric|min:0',
             'bonus_notes' => 'nullable|string',
             'working_days' => 'nullable|integer|min:0',
             'days_present' => 'nullable|integer|min:0',
@@ -315,6 +316,7 @@ class PayrollsController extends Controller
             'performance_bonus',
             'attendance_bonus',
             'other_bonus',
+            'reimbursement',
             'late_deduction',
             'absent_deduction',
             'penalty_amount',
@@ -600,6 +602,15 @@ class PayrollsController extends Controller
         $calculatedBase = $employee->salary;
         $pph21Amount = round($calculatedBase * (($employee->pph21_rate ?? 0) / 100));
 
+        // reimbursement
+        $reimbursements = \App\Models\FinancialClaim::where('employee_id', $employeeId)
+            ->where('status', 'approved')
+            ->whereMonth('created_at', $month)
+            ->whereYear('created_at', $year)
+            ->get(['id', 'title', 'amount', 'created_at']);
+        
+        $reimbursementAmount = $reimbursements->sum('amount');
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -623,12 +634,15 @@ class PayrollsController extends Controller
                 'bpjs_tk' => $bpjsTk,
 
                 'pph21' => $pph21Amount,
+                'pph21_rate' => (float) ($employee->pph21_rate ?? 0.5),
                 'transport_allowance' => (float) $employee->transport_allowance,
                 'meal_allowance' => (float) $employee->meal_allowance,
                 'position_allowance' => (float) $employee->position_allowance,
                 'total_salary' => (float) $employee->salary,
                 'overtime_hours' => round($totalOvertimeHours, 2),
                 'overtime_amount' => $overtimePay,
+                'reimbursement' => (float) $reimbursementAmount,
+                'reimbursement_details' => $reimbursements,
             ],
         ]);
     }

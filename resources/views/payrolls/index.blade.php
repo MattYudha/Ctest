@@ -217,7 +217,12 @@
         {{-- table container --}}
         <div class="card shadow-sm border-0" id="table-card" style="display: none; border-radius: 15px">
             <div class="card-body p-0">
-                <div class="table-responsive p-4">
+                <div class="px-4 pt-4 pb-2 border-bottom d-flex align-items-center">
+                    <h5 class="mb-0 fw-bold text-primary" id="table-period-title">
+                        <i class="bi bi-calendar-check me-2"></i> Payroll Data Period
+                    </h5>
+                </div>
+                <div class="table-responsive p-4 pt-3">
                     <table class="table table-striped table-hover align-middle w-100" id="payroll-table">
                         <thead>
                             <tr>
@@ -225,7 +230,6 @@
                                     <input type="checkbox" id="checkAll" class="form-check-input" />
                                 </th>
                                 <th class="text-uppercase" style="font-size: 0.8rem">Employee</th>
-                                <th class="text-uppercase" style="font-size: 0.8rem">Period</th>
                                 <th class="text-uppercase text-end" style="font-size: 0.8rem">Earnings</th>
                                 <th class="text-uppercase text-end" style="font-size: 0.8rem">Deductions</th>
                                 <th class="text-uppercase text-end" style="font-size: 0.8rem">Net Salary</th>
@@ -322,6 +326,9 @@
 
                         $('#initial-message').hide();
                         $('#table-card').fadeIn();
+                        
+                        let monthName = getSelectedMonthName();
+                        $('#table-period-title').html(`<i class="bi bi-calendar-check me-2"></i> Payroll Data Period: ${monthName} ${year}`);
 
                         if (!table) {
                             table = $('#payroll-table').DataTable({
@@ -339,7 +346,7 @@
                                         d.filter_status = $('#filter-status').val();
                                     },
                                 },
-                                order: [[2, 'desc']],
+                                order: [],
                                 columns: [
                                     {
                                         data: 'id',
@@ -359,7 +366,6 @@
                                         },
                                     },
                                     { data: 'employee_name', name: 'employee.fullname', orderable: false },
-                                    { data: 'period', name: 'period_year', orderable: true, searchable: false },
                                     { data: 'total_earnings', name: 'total_earnings', className: 'text-end' },
                                     { data: 'total_deductions', name: 'total_deductions', className: 'text-end' },
                                     { data: 'net_salary', name: 'net_salary', className: 'text-end fw-bold' },
@@ -543,6 +549,39 @@
                                 prosesUpdateStatus(id, 'paid', currentId);
                             }
                         });
+                    } else if (status === 'approved') {
+                        let currentMonth = new Date().getMonth() + 1;
+                        let currentYear = new Date().getFullYear();
+                        let selectedMonth = parseInt($('#filter-month').val());
+                        let selectedYear = parseInt($('#filter-year').val());
+
+                        if (selectedYear > currentYear || (selectedYear === currentYear && selectedMonth >= currentMonth)) {
+                            Swal.fire({
+                                title: 'Warning: Premature Approval!',
+                                html: 'You are approving payroll for a month that <b>has not yet ended</b>.<br><br>Attendance data, deductions, and overtime may not be final, which could result in invalid payroll records.<br><br>Do you still want to proceed?',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonText: 'Yes, Approve Anyway',
+                                confirmButtonColor: '#dc3545',
+                                cancelButtonText: 'Cancel'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    prosesUpdateStatus(id, status, null);
+                                }
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Approve Payroll?',
+                                text: 'Payroll status will be changed to approved.',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonText: 'Yes, Approve!',
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    prosesUpdateStatus(id, status, null);
+                                }
+                            });
+                        }
                     } else {
                         Swal.fire({
                             title: 'Change Status?',

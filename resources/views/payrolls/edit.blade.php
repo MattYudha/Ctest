@@ -217,8 +217,10 @@
                                     id="total_salary"
                                     class="form-control border-start-0 calc-earning format-rupiah"
                                     value="{{ old('total_salary', 0) }}"
+                                    readonly
                                 />
                             </div>
+                            <small class="text-muted">Calculated automatically</small>
                         </div>
                     </div>
                 </div>
@@ -283,6 +285,30 @@
 
                 <hr class="text-muted my-4" />
 
+                <h6 class="text-success fw-bold mb-3"><i class="bi bi-cash-stack me-2"></i> Reimbursement</h6>
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <label class="form-label fw-semibold text-secondary">Approved Reimbursement</label>
+                        <div class="input-group">
+                            <span class="input-group-text border-end-0 text-muted">Rp</span>
+                            <input
+                                type="text"
+                                inputmode="numeric"
+                                name="reimbursement"
+                                id="reimbursement"
+                                class="form-control border-start-0 calc-earning format-rupiah"
+                                value="{{ old('reimbursement', (int)$payroll->reimbursement) }}"
+                                readonly
+                            />
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#reimbursementModal">
+                                <i class="bi bi-eye"></i> View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="text-muted my-4" />
+
                 <h6 class="text-success fw-bold mb-3"><i class="bi bi-star-fill me-2"></i> Bonus</h6>
                 <div class="row row-gap-3">
                     <div class="col-md-4">
@@ -335,6 +361,7 @@
                                     value="{{ old('other_bonus', (int)$payroll->other_bonus) }}"
                                 />
                             </div>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -576,13 +603,14 @@
                                 <span class="input-group-text border-end-0 text-muted">Rp</span>
                                 <input
                                     type="text"
-                                    inputmode="numeric"
                                     name="pph21"
                                     id="pph21"
                                     class="form-control border-start-0 calc-deduction format-rupiah"
                                     value="{{ old('pph21', (int)$payroll->pph21) }}"
+                                    readonly
                                 />
                             </div>
+                            <small class="text-muted">Calculated automatically</small>
                         </div>
                     </div>
                 </div>
@@ -645,9 +673,8 @@
                                     </label>
 
                                     <div class="small text-muted">
-                                        When enabled, all allowances (Transportation, Meal, etc.), bonuses, and
-                                        deductions will be reset to <strong>0</strong>. The employee will receive only
-                                        the <strong>Base Salary</strong>.
+                                        When enabled, Transportation & Meal allowances will be reset to <strong>0</strong>.
+                                        Days Present will equal Working Days, and Late/Absent Deductions, along with Income Tax (PPh 21) will be <strong>0</strong>.
                                     </div>
                                 </div>
                             </div>
@@ -674,21 +701,62 @@
                 <div class="text-center mb-4">
                     <h4 class="text-primary fw-bold"><i class="bi bi-receipt-cutoff me-2"></i> Salary Summary</h4>
                 </div>
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="bg-body border p-4 rounded-3 shadow-sm h-100">
+                            <h5 class="text-success fw-bold mb-3 border-bottom pb-3"><i class="bi bi-graph-up-arrow me-2"></i> Earnings</h5>
+                            <table class="table table-sm table-borderless mb-0 fs-6">
+                                <tr><td class="text-secondary py-2">Base Salary</td><td class="text-end fw-semibold text-body py-2" id="summary-salary">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">Transport Allowance</td><td class="text-end fw-semibold text-body py-2" id="summary-transport_allowance">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">Meal Allowance</td><td class="text-end fw-semibold text-body py-2" id="summary-meal_allowance">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">Position Allowance</td><td class="text-end fw-semibold text-body py-2" id="summary-position_allowance">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">Overtime Amount</td><td class="text-end fw-semibold text-body py-2" id="summary-overtime_amount">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">Performance Bonus</td><td class="text-end fw-semibold text-body py-2" id="summary-performance_bonus">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">Attendance Bonus</td><td class="text-end fw-semibold text-body py-2" id="summary-attendance_bonus">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">Other Bonus</td><td class="text-end fw-semibold text-body py-2" id="summary-other_bonus">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">Reimbursement</td><td class="text-end fw-semibold text-body py-2" id="summary-reimbursement">Rp 0</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="bg-body border p-4 rounded-3 shadow-sm h-100">
+                            <h5 class="text-danger fw-bold mb-3 border-bottom pb-3"><i class="bi bi-graph-down-arrow me-2"></i> Deductions</h5>
+                            <table class="table table-sm table-borderless mb-0 fs-6">
+                                <tr><td class="text-secondary py-2">Late Deduction</td><td class="text-end fw-semibold text-body py-2" id="summary-late_deduction">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">Absent Deduction</td><td class="text-end fw-semibold text-body py-2" id="summary-absent_deduction">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">Penalty Amount</td><td class="text-end fw-semibold text-body py-2" id="summary-penalty_amount">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">BPJS Kesehatan</td><td class="text-end fw-semibold text-body py-2" id="summary-bpjs_kes">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">BPJS Ketenagakerjaan</td><td class="text-end fw-semibold text-body py-2" id="summary-bpjs_tk">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">Income Tax (PPh 21)</td><td class="text-end fw-semibold text-body py-2" id="summary-pph21">Rp 0</td></tr>
+                                <tr><td class="text-secondary py-2">Other Deduction</td><td class="text-end fw-semibold text-body py-2" id="summary-other_deduction">Rp 0</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row justify-content-center">
                     <div class="col-md-8">
-                        <div class="bg-body border p-4 rounded-3 shadow-sm mb-4">
+                        <div class="bg-primary bg-opacity-10 border border-primary border-opacity-25 p-4 rounded-3 shadow-sm mb-4">
                             <table class="table table-borderless mb-0">
                                 <tr>
-                                    <td class="fw-semibold fs-6 text-secondary py-2">Total Earnings</td>
-                                    <td class="text-end fs-5 text-success fw-bold py-2" id="summary-earnings">Rp 0</td>
+                                    <td class="fw-semibold fs-5 text-secondary py-2">Total Earnings</td>
+                                    <td class="text-end fs-4 text-success fw-bold py-2" id="summary-earnings">Rp 0</td>
                                 </tr>
                                 <tr>
-                                    <td class="fw-semibold fs-6 text-secondary py-2">Total Deductions</td>
-                                    <td class="text-end fs-5 text-danger fw-bold py-2" id="summary-deductions">Rp 0</td>
+                                    <td class="fw-semibold fs-5 text-secondary py-2">Total Deductions</td>
+                                    <td class="text-end fs-4 text-danger fw-bold py-2" id="summary-deductions">Rp 0</td>
+                                </tr>
+                                <tr class="border-top border-1 border-secondary border-opacity-25">
+                                    <td class="fw-semibold fs-5 text-secondary py-2">Total After Deductions</td>
+                                    <td class="text-end fs-4 text-body fw-bold py-2" id="summary-after-deductions">Rp 0</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-semibold fs-5 text-secondary py-2">Total PPh 21</td>
+                                    <td class="text-end fs-4 text-danger fw-bold py-2" id="summary-total-pph21">Rp 0</td>
                                 </tr>
                                 <tr class="border-top border-2 border-primary border-opacity-25">
-                                    <td class="fw-bold fs-4 text-body pt-3">Net Salary</td>
-                                    <td class="text-end fw-bolder fs-3 text-primary pt-3" id="summary-net">Rp 0</td>
+                                    <td class="fw-bold fs-3 text-body pt-3">Net Salary</td>
+                                    <td class="text-end fw-bolder fs-2 text-primary pt-3" id="summary-net">Rp 0</td>
                                 </tr>
                             </table>
                         </div>
@@ -920,6 +988,54 @@
             </div>
         </div>
     </div>
+
+    {{-- MODAL REIMBURSEMENT --}}
+    <div class="modal fade" id="reimbursementModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md">
+            <div class="modal-content border-0 shadow-lg rounded-3 overflow-hidden">
+                <div class="modal-header border-0 px-4 py-3 bg-primary">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-1 text-white">
+                            <i class="bi bi-cash-stack me-2"></i> Reimbursement Details
+                        </h5>
+                        <small class="text-white-50">Approved reimbursements for this period</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4" id="reimbursement-list">
+                    @php
+                        $reimbursements = \App\Models\FinancialClaim::where('employee_id', $payroll->employee_id)
+                            ->where('status', 'approved')
+                            ->whereMonth('created_at', $payroll->period_month)
+                            ->whereYear('created_at', $payroll->period_year)
+                            ->get(['id', 'title', 'amount', 'created_at']);
+                    @endphp
+                    @if($reimbursements->count() > 0)
+                        @foreach($reimbursements as $item)
+                        <div class="form-check d-flex justify-content-between align-items-center mb-3 p-3 border rounded-3 bg-light">
+                            <div>
+                                <input class="form-check-input reimburse-checkbox ms-0 me-3" type="checkbox" value="{{ $item->amount }}" id="reimb_{{ $item->id }}" checked onchange="updateReimbursementTotal()">
+                                <label class="form-check-label fw-bold" for="reimb_{{ $item->id }}">
+                                    {{ $item->title }}
+                                    <div class="text-muted fw-normal small mt-1"><i class="bi bi-calendar me-1"></i> {{ $item->created_at->format('n/j/Y') }}</div>
+                                </label>
+                            </div>
+                            <span class="fw-bold text-success fs-5">Rp {{ number_format($item->amount, 0, ',', '.') }}</span>
+                        </div>
+                        @endforeach
+                    @else
+                        <p class="text-muted text-center mb-0">No approved reimbursements for this period.</p>
+                    @endif
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4 pt-3">
+                    <button type="button" class="btn btn-primary rounded-3 w-100 py-2 fw-semibold shadow-sm" data-bs-dismiss="modal">
+                        <i class="bi bi-check-circle me-1"></i> Apply & Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @push ('scripts')
         <script>
             document.addEventListener('DOMContentLoaded', function () {
@@ -929,8 +1045,8 @@
                 const btnFetch = document.getElementById('btn-fetch-attendance');
                 const overtimeHoursEl = document.getElementById('overtime_hours');
 
-                // helper: format number to rupiah string
-                function formatRibuan(angka) {
+                // helper: format number to rupiah string (example: 1000000 -> 1.000.000)
+                window.formatRibuan = function formatRibuan(angka) {
                     if (angka === '' || angka === null || angka === undefined) {
                         return '';
                     }
@@ -1036,6 +1152,12 @@
                         .then((r) => r.json())
                         .then((res) => {
                             if (res.success) {
+                                const missedTarget = document.getElementById('missedTarget');
+                                if (missedTarget && missedTarget.checked) {
+                                    missedTarget.checked = false;
+                                    document.querySelectorAll('.target-notice').forEach(el => el.remove());
+                                }
+
                                 const d = res.data;
 
                                 document.getElementById('salary').value = formatRibuan(Math.round(d.base_salary));
@@ -1064,7 +1186,7 @@
                                 document.getElementById('breakdown_absent_wfo').innerText = (d.absent_wfo_deficit || 0) + ' Days';
                                 document.getElementById('breakdown_absent_total').innerText = (d.absent_count || 0) + ' Days';
 
-                                document.getElementById('pph21').value = formatRibuan(Math.round(d.pph21 || 0));
+                                window.currentPph21Rate = d.pph21_rate || 0.5;
 
                                 document.getElementById('late_count').value = d.late_count;
                                 document.getElementById('late_deduction').value = formatRibuan(d.late_deduction);
@@ -1073,6 +1195,31 @@
 
                                 document.getElementById('overtime_hours').value = d.overtime_hours || 0;
                                 document.getElementById('overtime_amount').value = formatRibuan(d.overtime_amount || 0);
+
+                                document.getElementById('reimbursement').value = formatRibuan(Math.round(d.reimbursement || 0));
+
+                                // Build reimbursement modal list
+                                let reimburseHtml = '';
+                                if (d.reimbursement_details && d.reimbursement_details.length > 0) {
+                                    d.reimbursement_details.forEach(item => {
+                                        const dateStr = new Date(item.created_at).toLocaleDateString();
+                                        reimburseHtml += `
+                                        <div class="form-check d-flex justify-content-between align-items-center mb-3 p-3 border rounded-3 bg-light">
+                                            <div>
+                                                <input class="form-check-input reimburse-checkbox ms-0 me-3" type="checkbox" value="${item.amount}" id="reimb_${item.id}" checked onchange="updateReimbursementTotal()">
+                                                <label class="form-check-label fw-bold" for="reimb_${item.id}">
+                                                    ${item.title}
+                                                    <div class="text-muted fw-normal small mt-1"><i class="bi bi-calendar me-1"></i> ${dateStr}</div>
+                                                </label>
+                                            </div>
+                                            <span class="fw-bold text-success fs-5">Rp ${formatRibuan(Math.round(item.amount))}</span>
+                                        </div>
+                                        `;
+                                    });
+                                } else {
+                                    reimburseHtml = '<p class="text-muted text-center mb-0">No approved reimbursements for this period.</p>';
+                                }
+                                document.getElementById('reimbursement-list').innerHTML = reimburseHtml;
 
                                 const infoEl = document.getElementById('attendance-info');
                                 if (infoEl) {
@@ -1136,41 +1283,95 @@
                 // listen all calculation inputs
                 document.querySelectorAll('.calc-earning, .calc-deduction').forEach((el) => {
                     el.addEventListener('input', recalculate);
-                });
-
-                function recalculate() {
+                });                // core recalculate logic
+                window.recalculate = function recalculate() {
                     const v = (id) => parseRupiah(document.getElementById(id).value);
                     const fmt = (n) => 'Rp ' + Math.round(n).toLocaleString('id-ID');
 
-                    const totalEarnings =
-                        v('salary') +
-                        v('transport_allowance') +
-                        v('meal_allowance') +
-                        v('position_allowance') +
-                        v('overtime_amount') +
-                        v('performance_bonus') +
-                        v('attendance_bonus') +
-                        v('other_bonus');
+                    const earningsFields = ['salary', 'transport_allowance', 'meal_allowance', 'position_allowance', 'overtime_amount', 'performance_bonus', 'attendance_bonus', 'other_bonus', 'reimbursement'];
+                    const deductionsFields = ['late_deduction', 'absent_deduction', 'penalty_amount', 'bpjs_kes', 'bpjs_tk', 'pph21', 'other_deduction'];
 
-                    const totalDeductions =
-                        v('late_deduction') +
-                        v('absent_deduction') +
-                        v('penalty_amount') +
-                        v('bpjs_kes') +
-                        v('bpjs_tk') +
-                        v('pph21') +
-                        v('other_deduction');
+                    let totalEarnings = 0;
+                    earningsFields.forEach(f => {
+                        let val = v(f);
+                        totalEarnings += val;
+                        let el = document.getElementById('summary-' + f);
+                        if (el) {
+                            el.textContent = fmt(val);
+                            el.closest('tr').style.display = val === 0 ? 'none' : '';
+                        }
+                    });
 
+                    let totalDeductionsExceptPph = 0;
+                    deductionsFields.forEach(f => {
+                        if (f !== 'pph21') {
+                            let val = v(f);
+                            totalDeductionsExceptPph += val;
+                            let el = document.getElementById('summary-' + f);
+                            if (el) {
+                                el.textContent = fmt(val);
+                                el.closest('tr').style.display = val === 0 ? 'none' : '';
+                            }
+                        }
+                    });
+
+                    // Compute PPh21
+                    const netBeforePph = totalEarnings - totalDeductionsExceptPph;
+                    let pph21Amount = 0;
+                    let pphZeroReason = '';
+                    const missedTargetEl = document.getElementById('missedTarget');
+                    
+                    if (netBeforePph >= 4500000) {
+                        if (!missedTargetEl || !missedTargetEl.checked) {
+                            const pphRate = window.currentPph21Rate || 0.5;
+                            pph21Amount = netBeforePph * (pphRate / 100);
+                        } else {
+                            pphZeroReason = 'Waived';
+                        }
+                    } else {
+                        pphZeroReason = 'Not Eligible';
+                    }
+                    
+                    const pph21Input = document.getElementById('pph21');
+                    if (pph21Input) {
+                        pph21Input.value = formatRibuan(Math.round(pph21Amount));
+                    }
+                    
+                    let elPph = document.getElementById('summary-pph21');
+                    if (elPph) {
+                        elPph.textContent = fmt(pph21Amount);
+                        elPph.closest('tr').style.display = pph21Amount === 0 ? 'none' : '';
+                    }
+
+                    const totalDeductions = totalDeductionsExceptPph + pph21Amount;
                     const net = totalEarnings - totalDeductions;
+
+                    const computedTotalSalary = v('salary') + v('transport_allowance') + v('meal_allowance') + v('position_allowance');
+                    const totalSalaryInput = document.getElementById('total_salary');
+                    if (totalSalaryInput) {
+                        totalSalaryInput.value = formatRibuan(Math.round(computedTotalSalary));
+                    }
 
                     document.getElementById('display-total-earnings').textContent = fmt(totalEarnings);
                     document.getElementById('display-total-deductions').textContent = fmt(totalDeductions);
                     document.getElementById('summary-earnings').textContent = fmt(totalEarnings);
-                    document.getElementById('summary-deductions').textContent = fmt(totalDeductions);
-                    document.getElementById('summary-net').textContent = fmt(net);
+                    document.getElementById('summary-deductions').textContent = fmt(totalDeductionsExceptPph);
+                    
+                    const elAfterDed = document.getElementById('summary-after-deductions');
+                    if (elAfterDed) elAfterDed.textContent = fmt(netBeforePph);
+                    
+                    const elTotalPph = document.getElementById('summary-total-pph21');
+                    if (elTotalPph) {
+                        if (pph21Amount === 0) {
+                            elTotalPph.innerHTML = `<span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-50 fw-normal py-1 px-2 fs-6">${pphZeroReason}</span>`;
+                        } else {
+                            elTotalPph.textContent = fmt(pph21Amount);
+                        }
+                    }
 
+                    document.getElementById('summary-net').textContent = fmt(net);
                     document.getElementById('summary-net').className =
-                        'text-end fw-bolder fs-3 pt-3 ' + (net >= 0 ? 'text-primary' : 'text-danger');
+                        'text-end fw-bolder fs-2 pt-3 ' + (net >= 0 ? 'text-primary' : 'text-danger');
                 }
 
                 // run initial calculation on page load
@@ -1178,6 +1379,8 @@
             });
 
             document.addEventListener('DOMContentLoaded', function () {
+                window.currentPph21Rate = {{ $payroll->employee->pph21_rate ?? 0.5 }};
+
                 const targetFields = [
                     // Earnings
                     'transport_allowance',
@@ -1187,6 +1390,7 @@
                     'performance_bonus',
                     'attendance_bonus',
                     'other_bonus',
+                    'reimbursement',
 
                     // Deductions
                     'late_deduction',
@@ -1201,13 +1405,23 @@
 
                 const missedTarget = document.getElementById('missedTarget');
 
+                const missedTargetZeroFields = [
+                    'transport_allowance',
+                    'meal_allowance',
+                    'late_count',
+                    'late_deduction',
+                    'absent_count',
+                    'absent_deduction',
+                    'pph21'
+                ];
+
                 missedTarget.addEventListener('change', function () {
                     const isChecked = this.checked;
 
                     if (isChecked) {
                         Swal.fire({
                             title: 'Apply Penalty?',
-                            text: 'All allowances, bonuses, and deductions will be cleared. The employee will receive only the Base Salary.',
+                            text: 'Transport & Meal allowances will be cleared. Absent/Late deductions and Income Tax (PPh 21) will be reset to 0.',
                             icon: 'warning',
                             showCancelButton: true,
                             confirmButtonColor: '#dc3545',
@@ -1215,7 +1429,7 @@
                             confirmButtonText: 'Yes, Apply!',
                         }).then((result) => {
                             if (result.isConfirmed) {
-                                targetFields.forEach((field) => {
+                                missedTargetZeroFields.forEach((field) => {
                                     const el = document.querySelector(`input[name="${field}"]`);
 
                                     if (el) {
@@ -1225,21 +1439,33 @@
                                     }
                                 });
 
-                                const salaryInput = document.querySelector('input[name="salary"]');
+                                const daysPresentEl = document.getElementById('days_present');
+                                const workingDaysEl = document.getElementById('working_days');
+                                if (daysPresentEl && workingDaysEl) {
+                                    daysPresentEl.dataset.oldVal = daysPresentEl.value;
+                                    daysPresentEl.value = workingDaysEl.value;
+                                    daysPresentEl.readOnly = true;
+                                }
 
-                                document.getElementById('total_salary').value = document.getElementById('salary').value;
+                                const targetNoticeHtml = '<div class="alert alert-warning target-notice mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i> Employee Did Not Meet Target</div>';
+                                const presenceModalBody = document.querySelector('#presenceBreakdownModal .modal-body');
+                                const absentModalBody = document.querySelector('#absentBreakdownModal .modal-body');
+                                if (presenceModalBody && !presenceModalBody.querySelector('.target-notice')) presenceModalBody.insertAdjacentHTML('afterbegin', targetNoticeHtml);
+                                if (absentModalBody && !absentModalBody.querySelector('.target-notice')) absentModalBody.insertAdjacentHTML('afterbegin', targetNoticeHtml);
+
+                                const salaryInput = document.querySelector('input[name="salary"]');
 
                                 if (salaryInput) {
                                     salaryInput.dispatchEvent(new Event('input', { bubbles: true }));
                                 }
 
-                                Swal.fire('Applied!', 'The values have been reset successfully.', 'success');
+                                Swal.fire('Applied!', 'The values have been adjusted successfully.', 'success');
                             } else {
                                 missedTarget.checked = false;
                             }
                         });
                     } else {
-                        targetFields.forEach((field) => {
+                        missedTargetZeroFields.forEach((field) => {
                             const el = document.querySelector(`input[name="${field}"]`);
 
                             if (el) {
@@ -1251,6 +1477,14 @@
                             }
                         });
 
+                        const daysPresentEl = document.getElementById('days_present');
+                        if (daysPresentEl && daysPresentEl.dataset.oldVal !== undefined) {
+                            daysPresentEl.value = daysPresentEl.dataset.oldVal;
+                            daysPresentEl.readOnly = false;
+                        }
+
+                        document.querySelectorAll('.target-notice').forEach(el => el.remove());
+
                         const salaryInput = document.querySelector('input[name="salary"]');
 
                         if (salaryInput) {
@@ -1258,6 +1492,15 @@
                         }
                     }
                 });
+                // Update reimbursement total based on checkboxes
+                window.updateReimbursementTotal = function() {
+                    let total = 0;
+                    document.querySelectorAll('.reimburse-checkbox:checked').forEach(cb => {
+                        total += parseFloat(cb.value);
+                    });
+                    document.getElementById('reimbursement').value = formatRibuan(Math.round(total));
+                    recalculate();
+                };
             });
         </script>
     @endpush

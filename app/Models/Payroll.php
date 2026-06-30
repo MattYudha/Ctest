@@ -25,6 +25,7 @@ class Payroll extends Model
         'performance_bonus',
         'attendance_bonus',
         'other_bonus',
+        'reimbursement',
         'bonus_notes',
         'bonuses',
         'total_earnings',
@@ -45,6 +46,7 @@ class Payroll extends Model
         'total_deductions',
         'net_salary',
         'status',
+        'financial_transaction_id',
         'pay_date',
         'notes',
     ];
@@ -61,6 +63,7 @@ class Payroll extends Model
             'performance_bonus' => 'decimal:2',
             'attendance_bonus' => 'decimal:2',
             'other_bonus' => 'decimal:2',
+            'reimbursement' => 'decimal:2',
             'bonuses' => 'decimal:2',
             'total_earnings' => 'decimal:2',
             'late_deduction' => 'decimal:2',
@@ -94,7 +97,8 @@ class Payroll extends Model
             + (float) $this->overtime_amount
             + (float) $this->performance_bonus
             + (float) $this->attendance_bonus
-            + (float) $this->other_bonus;
+            + (float) $this->other_bonus
+            + (float) $this->reimbursement;
     }
 
     /**
