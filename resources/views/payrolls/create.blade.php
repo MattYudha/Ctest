@@ -1245,8 +1245,9 @@
                             }
                         })
                         .catch((err) => {
+                            console.error("Fetch Attendance Error:", err);
                             if (typeof Swal !== 'undefined') {
-                                Swal.fire('Error', 'Failed to fetch system data.', 'error');
+                                Swal.fire('Error', 'Failed to fetch system data: ' + err.message, 'error');
                             } else {
                                 alert('Failed to fetch system data.');
                             }
@@ -1290,7 +1291,7 @@
                 });
 
                 // core recalculate logic
-                window.recalculate = function recalculate() {
+                function recalculate() {
                     const v = (id) => parseRupiah(document.getElementById(id).value);
                     const fmt = (n) => 'Rp ' + Math.round(n).toLocaleString('id-ID');
 
@@ -1379,6 +1380,7 @@
                     document.getElementById('summary-net').className =
                         'text-end fw-bolder fs-2 pt-3 ' + (net >= 0 ? 'text-primary' : 'text-danger');
                 }
+                window.recalculate = recalculate;
 
                 if (empSelect.value) {
                     checkAndFetchData();
