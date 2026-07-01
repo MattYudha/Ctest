@@ -35,6 +35,15 @@ class Signature extends Model
         'is_verified' => 'boolean',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($signature) {
+            $signature->verifications()->delete();
+        });
+    }
+
     /**
      * Get the signer (user who signed)
      */
