@@ -638,16 +638,14 @@
                                         iframe.style.opacity = '0.01';
                                         document.body.appendChild(iframe);
 
-                                        window.addEventListener(
-                                            'message',
-                                            function (event) {
+                                        const messageHandler = function (event) {
                                                 if (event.data === 'pdf_selesai') {
                                                     document.body.removeChild(iframe);
                                                     Swal.close();
+                                                    window.removeEventListener('message', messageHandler);
                                                 }
-                                            },
-                                            { once: true },
-                                        );
+                                            };
+                                        window.addEventListener('message', messageHandler);
 
                                         iframe.src = `{{ url('payrolls') }}/${id}/slip?auto_pdf=true`;
                                     }
