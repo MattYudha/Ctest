@@ -129,6 +129,7 @@
                             $activeCrmContacts = request()->is('crm/contacts*');
                             $activeCrmEmailBlasts = request()->is('crm/email-blasts*');
                             $activeCrmWaBlasts = request()->is('crm/wa-blasts*');
+                            $activeCrmTemplates = request()->is('crm/templates*');
 
                             $activeKpiDashboard = request()->is('kpi/dashboard*') || request()->is('kpi-dashboard*');
                             $activeKpiTeam = request()->is('kpi/team*');
@@ -185,7 +186,7 @@
                                 $activeIncidents ||
                                 $activePositions ||
                                 $activeHolidaysManagement;
-                            $crmMenuActive = $activeCrmDashboard || $activeCrmBoard || $activeCrmContacts || $activeCrmEmailBlasts || $activeCrmWaBlasts;
+                            $crmMenuActive = $activeCrmDashboard || $activeCrmBoard || $activeCrmContacts || $activeCrmEmailBlasts || $activeCrmWaBlasts || $activeCrmTemplates;
                             $kpiMenuActive = $activeKpiDashboard || $activeKpiTeam || $activeKpiDepartment || $activeKpiPending;
                             $financeMenuActive =
                                 $activeFinanceTransactions ||
@@ -313,6 +314,9 @@
                                     </li>
                                     <li class="submenu-item {{ $activeCrmWaBlasts ? 'active' : '' }}">
                                         <a href="{{ url('crm/wa-blasts') }}" class="submenu-link">WA Blasts</a>
+                                    </li>
+                                    <li class="submenu-item {{ $activeCrmTemplates ? 'active' : '' }}">
+                                        <a href="{{ url('crm/templates') }}" class="submenu-link">Message Templates</a>
                                     </li>
                                 </ul>
                             </li>

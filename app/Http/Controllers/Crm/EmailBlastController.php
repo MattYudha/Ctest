@@ -44,7 +44,7 @@ class EmailBlastController extends Controller
         // retrieve valid contact data to populate the checkbox list
         $allContacts = (clone $contactQuery)->get(['id', 'company_name', 'email']);
 
-        $templates = LetterTemplate::all();
+        $templates = \App\Models\CrmTemplate::where('type', 'email')->get();
 
         return view('crm.email_blasts.create', compact('contactCount', 'allContacts', 'templates'));
     }

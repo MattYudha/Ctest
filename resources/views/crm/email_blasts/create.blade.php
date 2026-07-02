@@ -286,11 +286,11 @@
 
                 if (id && templatesData[id]) {
                     // insert template content into tinymce workspace
-                    tinymce.get('body').setContent(templatesData[id].content || '');
-
-                    // automatically fill subject column if template has a name and subject is not manually filled
-                    if (!$('#subject').val()) {
-                        $('#subject').val(templatesData[id].name);
+                    tinymce.get('body').setContent(templatesData[id].body || '');
+                    
+                    // automatically fill subject column if template has a subject or name and subject is not manually filled
+                    if ($('#subject').val().trim() === '') {
+                        $('#subject').val(templatesData[id].subject || templatesData[id].name);
                     }
                 } else {
                     // clear editor if user goes back to selecting manual input

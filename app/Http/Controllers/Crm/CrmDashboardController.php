@@ -29,6 +29,7 @@ class CrmDashboardController extends Controller
         $totalContacts = (clone $contactQuery)->count();
         $totalDeals = (clone $dealQuery)->count();
         $totalValue = (clone $dealQuery)->sum('value');
+        $wonValue = (clone $dealQuery)->where('status', 'won')->sum('value');
 
         // Group deals by status
         $dealsByStatus = (clone $dealQuery)->selectRaw('status, count(*) as total')
@@ -46,6 +47,6 @@ class CrmDashboardController extends Controller
             })->get();
         }
 
-        return view('crm.dashboard.index', compact('totalContacts', 'totalDeals', 'totalValue', 'dealsByStatus', 'recentDeals', 'salesUsers', 'isSales', 'filterUserId'));
+        return view('crm.dashboard.index', compact('totalContacts', 'totalDeals', 'totalValue', 'wonValue', 'dealsByStatus', 'recentDeals', 'salesUsers', 'isSales', 'filterUserId'));
     }
 }

@@ -19,6 +19,9 @@ Route::middleware(['auth', 'verified', 'role:' . \App\Constants\Roles::SUPER_ADM
 
         // Menu Contacts
         Route::resource('contacts', ContactController::class);
+        
+        // CRM Message Templates
+        Route::resource('templates', \App\Http\Controllers\Crm\CrmTemplateController::class);
         Route::resource('email-blasts', EmailBlastController::class)->only([
             'index',
             'create',

@@ -117,7 +117,7 @@
 
                         <div class="col-12 mb-4">
                             <label for="template_selector" class="form-label fw-bold">
-                                Use Letter Template (Optional)
+                                Use CRM Template (Optional)
                             </label>
                             <select id="template_selector" class="form-select">
                                 <option value="">-- Type manual message or select a template --</option>
@@ -180,7 +180,7 @@
     <!-- Hidden templates for javascript population -->
     @foreach ($templates as $template)
         <div id="template-content-{{ $template->id }}" style="display:none;">
-            {!! $template->content !!}
+            {!! $template->body !!}
         </div>
     @endforeach
 @endsection

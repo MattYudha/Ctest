@@ -174,7 +174,7 @@
         <h5 class="mb-0 text-muted">Sales Pipeline Overview</h5>
         <div class="d-flex flex-column flex-md-row align-items-md-center gap-2">
             @if(!$isSales && count($salesUsers) > 0)
-            <div class="user-filter-select w-100">
+            <div class="user-filter-select">
                 <select class="form-select shadow-sm rounded-2 fw-bold" onchange="window.location.href='?user_id=' + this.value">
                     <option value="">All Sales Users</option>
                     @foreach($salesUsers as $sUser)
@@ -207,8 +207,8 @@
                 <div class="kanban-column shadow-sm">
                     <div class="kanban-column-header">
                         <div class="d-flex align-items-center">
-                            <div class="bg-light-{{ $column['color'] }} text-{{ $column['color'] }} rounded p-2 me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                                <i class="bi {{ $column['icon'] }}"></i>
+                            <div class="bg-light-{{ $column['color'] }} text-{{ $column['color'] }} rounded me-2" style="width: 35px; height: 35px;">
+                                <i class="bi {{ $column['icon'] }} fs-5 d-flex align-items-center justify-content-center w-100 h-100" style="line-height: 0;"></i>
                             </div>
                             <h6 class="mb-0 fw-bold">{{ $column['title'] }}</h6>
                         </div>
@@ -412,8 +412,18 @@
         columns.forEach(column => {
             new Sortable(column, {
                 group: 'kanban', // set both lists to same group
-                animation: 150,
+                animation: 250, // slightly longer for smoother transition
+                easing: "cubic-bezier(1, 0, 0, 1)", // smooth easing
                 ghostClass: 'sortable-ghost',
+                delay: 200, // wait 200ms before drag starts to allow for scrolling on mobile
+                delayOnTouchOnly: true, // only delay if user is using touch
+                touchStartThreshold: 5, // how many pixels the point should move before cancelling a delayed drag event
+                fallbackTolerance: 5, // helps prevent misfires when tapping on mobile
+                forceFallback: true, // Forces fallback to allow custom drag styling and better mobile auto-scroll
+                scroll: true, // Enable auto-scrolling
+                scrollSensitivity: 100, // px, how near the mouse must be to an edge to start scrolling.
+                scrollSpeed: 25, // px, speed of the scrolling
+                bubbleScroll: true, // applies autoscroll to all parent elements, allowing the window to scroll
                 onEnd: function (evt) {
                     const itemEl = evt.item;  // dragged HTMLElement
                     const toColumn = evt.to;  // target list

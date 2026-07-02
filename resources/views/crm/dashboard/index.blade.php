@@ -103,10 +103,32 @@
         @foreach ([
             ['Total Contacts', $totalContacts ?? 0, 'bi-people-fill', '#8b5cf6', ''],
             ['Total Deals/Tasks', $totalDeals ?? 0, 'bi-kanban', '#0ea5e9', ''],
-            ['Pipeline Value', $totalValue ?? 0, 'bi-cash-stack', '#10b981', 'Rp '],
-            ['Won Deals', $dealsByStatus['won'] ?? 0, 'bi-check-circle', '#ef4444', '']
+            ['Pipeline Value', $totalValue ?? 0, 'bi-cash-stack', '#10b981', 'Rp ']
         ] as [$title, $val, $icon, $color, $prefix])
-        <div class="col-12 col-md-6 col-lg-3">
+        <div class="col-12 col-md-4">
+            <div class="card shadow-sm h-100 border-0" style="border-radius: 12px; overflow: hidden;">
+                <div class="card-body p-4 d-flex flex-column text-center" style="align-items: center; justify-content: center;">
+                    <div style="width: 100%; display: flex; justify-content: center; margin-bottom: 12px;">
+                        <div class="fc-icon-box" style="--icon-color: {{ $color }};">
+                            <i class="bi {{ $icon }}"></i>
+                        </div>
+                    </div>
+                    <h6 class="text-muted mb-1 fw-semibold text-uppercase tracking-wider" style="font-size: 0.65rem;">{{ $title }}</h6>
+                    <h3 class="fw-bold mb-0 fs-3 color-navy">
+                        {{ $prefix }}{{ is_numeric($val) && $prefix === 'Rp ' ? number_format($val, 0, ',', '.') : $val }}
+                    </h3>
+                </div>
+            </div>
+        </div>
+        @endforeach
+    </div>
+
+    <div class="row g-3 mb-4">
+        @foreach ([
+            ['Won Deals', $dealsByStatus['won'] ?? 0, 'bi-check-circle', '#ef4444', ''],
+            ['Closing Value', $wonValue ?? 0, 'bi-trophy-fill', '#f59e0b', 'Rp ']
+        ] as [$title, $val, $icon, $color, $prefix])
+        <div class="col-12 col-md-6">
             <div class="card shadow-sm h-100 border-0" style="border-radius: 12px; overflow: hidden;">
                 <div class="card-body p-4 d-flex flex-column text-center" style="align-items: center; justify-content: center;">
                     <div style="width: 100%; display: flex; justify-content: center; margin-bottom: 12px;">
@@ -125,7 +147,7 @@
     </div>
     
     <div class="row">
-        <div class="col-md-8">
+        <div class="col-12">
             <div class="card shadow-sm border-0" style="border-radius: 12px;">
                 <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
                     <h6 class="fw-bold mb-0 color-navy opacity-75 text-uppercase" style="font-size: 0.75rem;">Pipeline Stages Overview</h6>
@@ -179,46 +201,48 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-12">
             <div class="card shadow-sm border-0 h-100" style="border-radius: 12px;">
                 <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
                     <h6 class="fw-bold mb-0 color-navy opacity-75 text-uppercase" style="font-size: 0.75rem;">Recent Tasks / Deals</h6>
                 </div>
-                <div class="card-body p-4">
-                    <ul class="list-group list-group-flush">
-                        @forelse($recentDeals as $deal)
-                            @php
-                                $stageColor = $stages[$deal->status]['color'] ?? 'primary';
-                                $stageLabel = $stages[$deal->status]['label'] ?? ucfirst($deal->status);
-                            @endphp
-                            <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0" style="border-bottom: 1px solid var(--bs-border-color);">
-                                <div>
-                                    <h6 class="mb-1 fw-bold">{{ $deal->title }}</h6>
-                                    <div class="text-muted small d-flex align-items-center">
-                                        <i class="bi bi-building me-1"></i>
-                                        <span>{{ $deal->contact ? $deal->contact->company_name : 'No Contact' }}</span>
-                                    </div>
-                                    @if(!$isSales && !$filterUserId && $deal->creator)
-                                    <div class="text-muted small mt-1 d-flex align-items-center" style="font-size: 0.75rem;">
-                                        <div class="avatar avatar-sm bg-light-primary me-2" style="width: 20px; height: 20px;">
-                                            <span class="avatar-content text-primary fw-bold" style="font-size: 10px;">
-                                                {{ strtoupper(substr($deal->creator->name, 0, 1)) }}
-                                            </span>
+                <div class="card-body p-4 d-flex flex-column">
+                    <div style="max-height: 320px; overflow-y: auto; padding-right: 5px;" class="custom-scroll">
+                        <ul class="list-group list-group-flush">
+                            @forelse($recentDeals as $deal)
+                                @php
+                                    $stageColor = $stages[$deal->status]['color'] ?? 'primary';
+                                    $stageLabel = $stages[$deal->status]['label'] ?? ucfirst($deal->status);
+                                @endphp
+                                <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0" style="border-bottom: 1px solid var(--bs-border-color);">
+                                    <div>
+                                        <h6 class="mb-1 fw-bold">{{ $deal->title }}</h6>
+                                        <div class="text-muted small d-flex align-items-center">
+                                            <i class="bi bi-building me-1"></i>
+                                            <span>{{ $deal->contact ? $deal->contact->company_name : 'No Contact' }}</span>
                                         </div>
-                                        <span class="fw-bold">{{ $deal->creator->name }}</span>
+                                        @if(!$isSales && !$filterUserId && $deal->creator)
+                                        <div class="text-muted small mt-1 d-flex align-items-center" style="font-size: 0.75rem;">
+                                            <div class="avatar avatar-sm bg-light-primary me-2" style="width: 20px; height: 20px;">
+                                                <span class="avatar-content text-primary fw-bold" style="font-size: 10px;">
+                                                    {{ strtoupper(substr($deal->creator->name, 0, 1)) }}
+                                                </span>
+                                            </div>
+                                            <span class="fw-bold">{{ $deal->creator->name }}</span>
+                                        </div>
+                                        @endif
                                     </div>
-                                    @endif
-                                </div>
-                                <span class="badge bg-{{ $stageColor }} rounded-pill px-3">{{ $stageLabel }}</span>
-                            </li>
-                        @empty
-                            <li class="list-group-item bg-transparent text-center text-muted px-0 border-0 py-4">
-                                <div class="mb-2"><i class="bi bi-inbox fs-2 opacity-50"></i></div>
-                                No recent activities found.
-                            </li>
-                        @endforelse
-                    </ul>
-                    <div class="mt-4 text-center">
+                                    <span class="badge bg-{{ $stageColor }} rounded-pill px-3">{{ $stageLabel }}</span>
+                                </li>
+                            @empty
+                                <li class="list-group-item bg-transparent text-center text-muted px-0 border-0 py-4">
+                                    <div class="mb-2"><i class="bi bi-inbox fs-2 opacity-50"></i></div>
+                                    No recent activities found.
+                                </li>
+                            @endforelse
+                        </ul>
+                    </div>
+                    <div class="mt-auto text-center pt-4">
                         <a href="{{ route('crm.board.index') }}" class="btn btn-primary w-100 shadow-sm fw-bold">
                             Open Pipeline Board <i class="bi bi-arrow-right ms-1"></i>
                         </a>

@@ -43,7 +43,7 @@ class WaBlastController extends Controller
         // retrieve valid contact data to populate the checkbox list
         $allContacts = (clone $contactQuery)->get(['id', 'company_name', 'phone']);
 
-        $templates = LetterTemplate::all();
+        $templates = \App\Models\CrmTemplate::where('type', 'wa')->get();
 
         return view('crm.wa_blasts.create', compact('contactCount', 'allContacts', 'templates'));
     }

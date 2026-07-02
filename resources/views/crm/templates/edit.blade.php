@@ -1,0 +1,107 @@
+@extends('layouts.dashboard')
+
+@section('content')
+<div class="page-heading mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div class="d-flex align-items-center order-2 order-md-1">
+            <a href="{{ route('crm.templates.index') }}" class="btn btn-secondary me-3" title="Back">
+                <i class="bi bi-arrow-left fs-5"></i>
+            </a>
+            <div>
+                <h3 class="mb-0">Edit Template</h3>
+                <p class="text-subtitle text-muted mb-0 mt-1">Edit an existing message template for CRM.</p>
+            </div>
+        </div>
+        <nav aria-label="breadcrumb" class="breadcrumb-header order-1 order-md-2">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('crm.templates.index') }}">CRM Templates</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<section class="section">
+    <div class="card">
+        <div class="card-header border-bottom">
+            <h4 class="card-title">Template Details</h4>
+        </div>
+            <div class="card-body">
+                <form action="{{ route('crm.templates.update', $template->id) }}" method="POST">
+                    @csrf
+                    @method('PUT')
+                    
+                    <div class="row">
+                        <div class="col-md-6 col-12">
+                            <div class="form-group">
+                                <label for="name">Template Name <span class="text-danger">*</span></label>
+                                <input type="text" id="name" class="form-control @error('name') is-invalid @enderror" name="name" value="{{ old('name', $template->name) }}" required>
+                                @error('name')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-12">
+                            <div class="form-group">
+                                <label for="type">Template Type <span class="text-danger">*</span></label>
+                                <select id="type" class="form-select @error('type') is-invalid @enderror" name="type" required onchange="toggleSubject()">
+                                    <option value="wa" {{ old('type', $template->type) == 'wa' ? 'selected' : '' }}>WhatsApp</option>
+                                    <option value="email" {{ old('type', $template->type) == 'email' ? 'selected' : '' }}>Email</option>
+                                </select>
+                                @error('type')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-12" id="subject-container" style="display: {{ old('type', $template->type) == 'email' ? 'block' : 'none' }};">
+                            <div class="form-group">
+                                <label for="subject">Email Subject <span class="text-danger">*</span></label>
+                                <input type="text" id="subject" class="form-control @error('subject') is-invalid @enderror" name="subject" value="{{ old('subject', $template->subject) }}">
+                                @error('subject')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group">
+                                <label for="body">Message Body <span class="text-danger">*</span></label>
+                                <p class="text-muted small mb-2">Available placeholders: <code>[Contact Name]</code>, <code>[Company Name]</code>, <code>[Sales Name]</code></p>
+                                <textarea id="body" class="form-control @error('body') is-invalid @enderror" name="body" rows="6" required>{{ old('body', $template->body) }}</textarea>
+                                @error('body')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end mt-3">
+                            <button type="submit" class="btn btn-primary me-1 mb-1">Update</button>
+                            <a href="{{ route('crm.templates.index') }}" class="btn btn-light-secondary me-1 mb-1">Cancel</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+    function toggleSubject() {
+        const type = document.getElementById('type').value;
+        const subjectContainer = document.getElementById('subject-container');
+        const subjectInput = document.getElementById('subject');
+        
+        if (type === 'email') {
+            subjectContainer.style.display = 'block';
+            subjectInput.setAttribute('required', 'required');
+        } else {
+            subjectContainer.style.display = 'none';
+            subjectInput.removeAttribute('required');
+        }
+    }
+    
+    // Initialize on load just in case
+    document.addEventListener("DOMContentLoaded", function() {
+        toggleSubject();
+    });
+</script>
+@endsection
