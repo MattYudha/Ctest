@@ -33,4 +33,7 @@ jobs:
             echo "-- Clean Server Cache"
             php artisan optimize:clear
 
+            echo "-- Restart Queue Workers"
+            php artisan queue:restart
+
             echo "Deploy Completed"

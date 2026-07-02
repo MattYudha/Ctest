@@ -113,6 +113,14 @@
         background-color: #151521 !important;
         border-color: #435ebe !important;
     }
+    .sortable-drag {
+        width: 304px !important;
+        opacity: 0.95 !important;
+        cursor: grabbing !important;
+        z-index: 9999 !important;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+        transform: rotate(2deg) !important;
+    }
     
     .card-actions {
         position: absolute;
@@ -415,11 +423,14 @@
                 animation: 250, // slightly longer for smoother transition
                 easing: "cubic-bezier(1, 0, 0, 1)", // smooth easing
                 ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                forceFallback: true,
+                fallbackClass: 'sortable-drag',
+                fallbackOnBody: true,
+                fallbackTolerance: 5,
                 delay: 200, // wait 200ms before drag starts to allow for scrolling on mobile
                 delayOnTouchOnly: true, // only delay if user is using touch
                 touchStartThreshold: 5, // how many pixels the point should move before cancelling a delayed drag event
-                fallbackTolerance: 5, // helps prevent misfires when tapping on mobile
-                forceFallback: true, // Forces fallback to allow custom drag styling and better mobile auto-scroll
                 scroll: true, // Enable auto-scrolling
                 scrollSensitivity: 100, // px, how near the mouse must be to an edge to start scrolling.
                 scrollSpeed: 25, // px, speed of the scrolling
