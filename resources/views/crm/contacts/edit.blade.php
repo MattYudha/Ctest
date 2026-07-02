@@ -71,22 +71,29 @@
                                 <input
                                     type="text"
                                     id="phone"
-                                    class="form-control"
+                                    class="form-control @error('phone') is-invalid @enderror"
                                     name="phone"
                                     value="{{ old('phone', $contact->phone) }}"
+                                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                                 />
+                                @error ('phone')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
                         <div class="col-12 col-md-6 mb-3">
                             <div class="form-group">
                                 <label for="email" class="form-label fw-bold">Email Address</label>
                                 <input
-                                    type="text"
+                                    type="email"
                                     id="email"
-                                    class="form-control"
+                                    class="form-control @error('email') is-invalid @enderror"
                                     name="email"
                                     value="{{ old('email', $contact->email) }}"
                                 />
+                                @error ('email')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
 

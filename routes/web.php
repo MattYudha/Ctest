@@ -88,6 +88,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/presence', [DashboardController::class, 'presence']);
 
+
+
     // Resource routes for departments
     Route::get('departments/org-chart', [DepartmentController::class, 'orgChart'])->name('departments.org-chart');
     Route::resource('departments', DepartmentController::class)->middleware([

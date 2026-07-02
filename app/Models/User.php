@@ -82,6 +82,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is Sales
+     */
+    public function isSales(): bool
+    {
+        return $this->employee?->role?->title === \App\Constants\Roles::SALES;
+    }
+
+    /**
      * Check if user is Manager / Unit Head
      */
     public function isManager(): bool

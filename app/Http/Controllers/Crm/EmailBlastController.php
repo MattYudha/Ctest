@@ -12,27 +12,37 @@ use App\Models\LetterTemplate;
 
 class EmailBlastController extends Controller
 {
+    private function getBlastQuery()
+    {
+        $query = CrmEmailBlast::query();
+        if (auth()->user()->isSales()) {
+            $query->where('created_by', auth()->id());
+        }
+        return $query;
+    }
+
     public function index()
     {
-        $blasts = CrmEmailBlast::latest()->paginate(10);
+        $blasts = $this->getBlastQuery()->latest()->paginate(10);
         return view('crm.email_blasts.index', compact('blasts'));
     }
 
     public function create(Request $request)
     {
-        // calculate total contacts with valid emails (not empty, not '-', and contains '@')
-        $contactCount = CrmContact::whereNotNull('email')
+        $contactQuery = CrmContact::whereNotNull('email')
             ->where('email', '!=', '')
             ->where('email', '!=', '-')
-            ->where('email', 'LIKE', '%@%')
-            ->count();
+            ->where('email', 'LIKE', '%@%');
+            
+        if (auth()->user()->isSales()) {
+            $contactQuery->where('created_by', auth()->id());
+        }
 
-        // 2. retrieve valid contact data to populate the checkbox list
-        $allContacts = CrmContact::whereNotNull('email')
-            ->where('email', '!=', '')
-            ->where('email', '!=', '-')
-            ->where('email', 'LIKE', '%@%')
-            ->get(['id', 'company_name', 'email']);
+        // calculate total contacts with valid emails
+        $contactCount = (clone $contactQuery)->count();
+
+        // retrieve valid contact data to populate the checkbox list
+        $allContacts = (clone $contactQuery)->get(['id', 'company_name', 'email']);
 
         $templates = LetterTemplate::all();
 
@@ -41,7 +51,7 @@ class EmailBlastController extends Controller
 
     public function show(Request $request, $id)
     {
-        $blast = CrmEmailBlast::with(['recipients.contact', 'creator'])->findOrFail($id);
+        $blast = $this->getBlastQuery()->with(['recipients.contact', 'creator'])->findOrFail($id);
 
         // response for real-time ajax polling
         if ($request->ajax()) {
@@ -73,13 +83,18 @@ class EmailBlastController extends Controller
             'target_type' => 'required|in:all,selected',
         ]);
 
+        $contactQuery = \App\Models\CrmContact::query();
+        if (auth()->user()->isSales()) {
+            $contactQuery->where('created_by', auth()->id());
+        }
+
         // retrieve the contact list based on the selection
         if ($request->target_type === 'selected') {
             $contactIds = $request->input('contact_ids', []);
-            $contacts = \App\Models\CrmContact::whereIn('id', $contactIds)->get();
+            $contacts = $contactQuery->whereIn('id', $contactIds)->get();
         } else {
             // apply the same filter here
-            $contacts = \App\Models\CrmContact::whereNotNull('email')
+            $contacts = $contactQuery->whereNotNull('email')
                 ->where('email', '!=', '')
                 ->where('email', '!=', '-')
                 ->where('email', 'LIKE', '%@%')
@@ -125,7 +140,7 @@ class EmailBlastController extends Controller
 
     public function destroy($id)
     {
-        $blast = CrmEmailBlast::findOrFail($id);
+        $blast = $this->getBlastQuery()->findOrFail($id);
 
         // prevent deletion if currently processing
         if ($blast->status === 'processing') {
