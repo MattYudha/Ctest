@@ -1,6 +1,7 @@
 @extends ('layouts.dashboard')
 
 @push('styles')
+<link rel="stylesheet" href="{{ asset('mazer/assets/extensions/choices.js/public/assets/styles/choices.css') }}">
 <style>
     .kanban-board-container {
         padding-bottom: 10px;
@@ -128,7 +129,7 @@
     }
     @media (min-width: 768px) {
         .user-filter-select {
-            width: 250px;
+            width: 350px;
         }
     }
 </style>
@@ -308,7 +309,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Related Contact</label>
-                        <select class="form-select" name="crm_contact_id">
+                        <select class="form-select" name="crm_contact_id" id="contact_id_add">
                             <option value="">-- None --</option>
                             @foreach($contacts as $contact)
                                 <option value="{{ $contact->id }}">{{ $contact->company_name }}</option>
@@ -366,7 +367,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Related Contact</label>
-                        <select class="form-select" name="crm_contact_id">
+                        <select class="form-select" name="crm_contact_id" id="contact_id_edit">
                             <option value="">-- None --</option>
                             @foreach($contacts as $contact)
                                 <option value="{{ $contact->id }}">{{ $contact->company_name }}</option>
@@ -393,9 +394,19 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('mazer/assets/extensions/choices.js/public/assets/scripts/choices.min.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script>
     $(document).ready(function() {
+        // Initialize Choices.js
+        const choicesOptions = {
+            searchEnabled: true,
+            itemSelectText: '',
+            shouldSort: false
+        };
+        const contactAddChoices = new Choices('#contact_id_add', choicesOptions);
+        window.contactEditChoices = new Choices('#contact_id_edit', choicesOptions);
+        
         const columns = document.querySelectorAll('.kanban-cards');
         
         columns.forEach(column => {
@@ -546,7 +557,13 @@
         form.action = '{{ url("crm/board") }}/' + id;
         
         form.querySelector('[name=title]').value = title || '';
-        form.querySelector('[name=crm_contact_id]').value = contact || '';
+        
+        // Update choices.js value
+        if (window.contactEditChoices) {
+            window.contactEditChoices.setChoiceByValue(contact || '');
+        } else {
+            form.querySelector('[name=crm_contact_id]').value = contact || '';
+        }
         let parsedValue = value ? Math.floor(Number(value)).toString() : '';
         form.querySelector('[name=value]').value = parsedValue ? window.formatRupiah(parsedValue) : '';
         form.querySelector('[name=description]').value = desc || '';
