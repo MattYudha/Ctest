@@ -13,6 +13,7 @@ class Roles
     const EMPLOYEE = 'Employee';
     const MARKETING = 'Marketing';
     const FINANCE = 'Finance';
+    const SALES = 'Sales';
 
     // Role Groups
     const ADMIN_ROLES = [self::SUPER_ADMIN, self::MASTER_ADMIN, self::HR_ADMINISTRATOR];
@@ -55,6 +56,7 @@ class Roles
         self::EMPLOYEE,
         self::MARKETING,
         self::FINANCE,
+        self::SALES,
     ];
 
     /**

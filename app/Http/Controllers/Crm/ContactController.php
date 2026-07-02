@@ -26,7 +26,7 @@ class ContactController extends Controller
             'address' => 'nullable|string',
             'phone' => 'nullable|string|max:50',
             'website_url' => 'nullable|string|max:255',
-            'email' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255|unique:crm_contacts,email',
             'source' => 'nullable|string|max:255',
         ]);
 
@@ -65,7 +65,7 @@ class ContactController extends Controller
             'address' => 'nullable|string',
             'phone' => 'nullable|string|max:50',
             'website_url' => 'nullable|string|max:255',
-            'email' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255|unique:crm_contacts,email,' . $id,
             'source' => 'nullable|string|max:255',
         ]);
 

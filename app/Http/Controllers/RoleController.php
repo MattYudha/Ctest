@@ -112,6 +112,7 @@ class RoleController extends Controller
             ['key' => 'attendance', 'label' => 'Presensi & Kehadiran'],
             ['key' => 'hr_reports', 'label' => 'Laporan HR Administrator / KPI'],
             ['key' => 'knowledge_base', 'label' => 'Knowledge Base & Artikel'],
+            ['key' => \App\Constants\Roles::SALES, 'label' => 'CRM & Sales'],
         ];
     }
 }

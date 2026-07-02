@@ -104,6 +104,7 @@
                             $isEmployee = $role === \App\Constants\Roles::EMPLOYEE;
                             $isMarketing = $role === \App\Constants\Roles::MARKETING;
                             $isFinanceRole = $role === \App\Constants\Roles::FINANCE;
+                            $isSales = $role === \App\Constants\Roles::SALES;
 
                             $isDevOrAdmin = $isAdmin || $isMasterAdmin;
                             $isManagerOrAdmin = $isAdmin || $isMasterAdmin || $isManager;
@@ -288,7 +289,7 @@
                             </ul>
                         </li>
 
-                        @if ($isAdmin || $isManager)
+                        @if ($isMasterAdmin || $role === \App\Constants\Roles::SUPER_ADMIN || $isSales)
                             <li class="sidebar-item has-sub {{ $crmMenuActive ? 'active' : '' }}">
                                 <a href="#" class="sidebar-link">
                                     <i class="bi bi-people-fill"></i>
