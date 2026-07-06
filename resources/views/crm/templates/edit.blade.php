@@ -84,7 +84,33 @@
     </section>
 </div>
 
+@push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js"></script>
 <script>
+    function initTinyMCE() {
+        if (tinymce.get('body')) {
+            return;
+        }
+        let isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        tinymce.init({
+            selector: '#body',
+            plugins: 'advlist autolink lists link image charmap preview anchor pagebreak searchreplace wordcount visualblocks visualchars code fullscreen insertdatetime media nonbreaking table emoticons template help',
+            toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | outdent indent | numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons | fullscreen preview print | insertfile image media template link anchor codesample | ltr rtl',
+            height: 400,
+            menubar: 'file edit view insert format tools table help',
+            skin: isDarkMode ? 'oxide-dark' : 'oxide',
+            content_css: isDarkMode ? 'dark' : 'default',
+            content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
+            table_use_colgroups: false
+        });
+    }
+
+    function removeTinyMCE() {
+        if (tinymce.get('body')) {
+            tinymce.remove('#body');
+        }
+    }
+
     function toggleSubject() {
         const type = document.getElementById('type').value;
         const subjectContainer = document.getElementById('subject-container');
@@ -93,9 +119,11 @@
         if (type === 'email') {
             subjectContainer.style.display = 'block';
             subjectInput.setAttribute('required', 'required');
+            initTinyMCE();
         } else {
             subjectContainer.style.display = 'none';
             subjectInput.removeAttribute('required');
+            removeTinyMCE();
         }
     }
     
@@ -104,4 +132,5 @@
         toggleSubject();
     });
 </script>
+@endpush
 @endsection

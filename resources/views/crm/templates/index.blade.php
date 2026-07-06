@@ -151,13 +151,14 @@
             var body = $(this).data('body');
             
             $('#modal-template-name').text(name);
-            $('#modal-template-body').text(body);
             
             if (type === 'email') {
+                $('#modal-template-body').html(body);
                 $('#modal-template-type').html('<span class="badge bg-primary">Email</span>');
                 $('#modal-subject-container').show();
                 $('#modal-template-subject').text(subject ? subject : '-');
             } else {
+                $('#modal-template-body').text(body);
                 $('#modal-template-type').html('<span class="badge bg-success">WhatsApp</span>');
                 $('#modal-subject-container').hide();
             }
