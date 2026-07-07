@@ -13,152 +13,56 @@ class KPISeeder extends Seeder
 {
     public function run(): void
     {
+        // Hapus KPI lama agar dashboard bersih
+        \DB::table('role_kpi')->truncate();
+        \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        \DB::table('employee_kpi_records')->truncate();
+        KPI::truncate();
+        \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
-        // 1. ATTENDANCE KPIs
-        KPI::create([
-            'code' => 'ATT_RATE',
-            'name' => 'Attendance Rate',
+        // 1. Kepatuhan Checkout (Checkout Compliance)
+        $kpiCheckout = KPI::create([
+            'code' => 'ATT_CHECKOUT',
+            'name' => 'Kepatuhan Checkout',
             'category' => 'Attendance',
-            'description' => 'Percentage of days employee was present',
-            'formula' => '(Working Days Present / Total Working Days) × 100%',
-            'target_value' => 95,
+            'description' => 'Persentase hari kerja yang memiliki catatan check-out valid (kepulangan).',
+            'formula' => '(Jumlah Checkout Valid / Jumlah Kehadiran) × 100%',
+            'target_value' => 100,
             'min_value' => 0,
             'max_value' => 100,
-            'weight' => 0.25,
+            'weight' => 0.50, // 50%
             'unit' => '%',
             'status' => 'active',
+            'metric_category' => 'attendance',
+            'metric_key' => 'checkout_compliance',
         ]);
 
-        KPI::create([
-            'code' => 'PUNCTUALITY',
-            'name' => 'Punctuality',
-            'category' => 'Attendance',
-            'description' => 'Percentage of on-time arrivals',
-            'formula' => '(On-time Arrivals / Total Working Days) × 100%',
-            'target_value' => 90,
-            'min_value' => 0,
-            'max_value' => 100,
-            'weight' => 0.15,
-            'unit' => '%',
-            'status' => 'active',
-        ]);
-
-        KPI::create([
-            'code' => 'TARDINESS_RATE',
-            'name' => 'Tardiness Rate',
-            'category' => 'Attendance',
-            'description' => 'Percentage of late arrivals',
-            'formula' => '(Late Arrivals / Total Working Days) × 100%',
-            'target_value' => 5,
-            'min_value' => 0,
-            'max_value' => 100,
-            'weight' => 0.10,
-            'unit' => '%',
-            'status' => 'active',
-        ]);
-
-        // 2. PRODUCTIVITY KPIs
-        KPI::create([
-            'code' => 'TASK_COMP_RATE',
-            'name' => 'Task Completion Rate',
+        // 2. Persentase Pengisian Log (Log Percentage)
+        $kpiLog = KPI::create([
+            'code' => 'PROD_LOG',
+            'name' => 'Persentase Pengisian Log',
             'category' => 'Productivity',
-            'description' => 'Percentage of assigned tasks completed',
-            'formula' => '(Completed Tasks / Total Assigned Tasks) × 100%',
-            'target_value' => 85,
+            'description' => 'Persentase jumlah log kerja yang diisi dibandingkan dengan total hari kerja.',
+            'formula' => '(Jumlah WorkLog / Jumlah Hari Kerja) × 100%',
+            'target_value' => 100,
             'min_value' => 0,
             'max_value' => 100,
-            'weight' => 0.35,
+            'weight' => 0.50, // 50%
             'unit' => '%',
             'status' => 'active',
+            'metric_category' => 'productivity',
+            'metric_key' => 'log_percentage',
         ]);
 
-        KPI::create([
-            'code' => 'ON_TIME_DELIVERY',
-            'name' => 'On-time Delivery Rate',
-            'category' => 'Productivity',
-            'description' => 'Percentage of tasks completed by due date',
-            'formula' => '(On-time Tasks / Completed Tasks) × 100%',
-            'target_value' => 90,
-            'min_value' => 0,
-            'max_value' => 100,
-            'weight' => 0.20,
-            'unit' => '%',
-            'status' => 'active',
-        ]);
+        // Attach ke semua Role yang ada secara global
+        $roles = \App\Models\Role::all();
+        foreach ($roles as $role) {
+            $role->kpis()->attach([
+                $kpiCheckout->id => ['target_value' => 100, 'weight' => 0.50],
+                $kpiLog->id => ['target_value' => 100, 'weight' => 0.50],
+            ]);
+        }
 
-        KPI::create([
-            'code' => 'TASK_OVERDUE_RATE',
-            'name' => 'Task Overdue Rate',
-            'category' => 'Productivity',
-            'description' => 'Percentage of overdue tasks',
-            'formula' => '(Overdue Tasks / Total Tasks) × 100%',
-            'target_value' => 5,
-            'min_value' => 0,
-            'max_value' => 100,
-            'weight' => 0.10,
-            'unit' => '%',
-            'status' => 'active',
-        ]);
-
-        // 3. LEAVE KPIs
-        KPI::create([
-            'code' => 'LEAVE_UTIL_RATE',
-            'name' => 'Leave Utilization Rate',
-            'category' => 'Leave',
-            'description' => 'Percentage of annual leave days used',
-            'formula' => '(Days Used / Annual Allocation) × 100%',
-            'target_value' => 85,
-            'min_value' => 0,
-            'max_value' => 100,
-            'weight' => 0.05,
-            'unit' => '%',
-            'status' => 'active',
-        ]);
-
-        // 4. BEHAVIOR & COMPLIANCE KPIs
-        KPI::create([
-            'code' => 'COMPLIANCE_SCORE',
-            'name' => 'Compliance Score',
-            'category' => 'Behavior',
-            'description' => 'Score based on policy adherence and incidents',
-            'formula' => '100 - (incidents × 10)',
-            'target_value' => 95,
-            'min_value' => 0,
-            'max_value' => 100,
-            'weight' => 0.15,
-            'unit' => 'points',
-            'status' => 'active',
-        ]);
-
-        KPI::create([
-            'code' => 'CONDUCT_SCORE',
-            'name' => 'Conduct Score',
-            'category' => 'Behavior',
-            'description' => 'Score based on incident severity',
-            'formula' => '100 - (severity_points)',
-            'target_value' => 95,
-            'min_value' => 0,
-            'max_value' => 100,
-            'weight' => 0.10,
-            'unit' => 'points',
-            'status' => 'active',
-        ]);
-
-        KPI::create([
-            'code' => 'DOC_VERIFY_RATE',
-            'name' => 'Document Verification Rate',
-            'category' => 'Behavior',
-            'description' => 'Percentage of documents verified/signed',
-            'formula' => '(Verified Docs / Total Docs) × 100%',
-            'target_value' => 95,
-            'min_value' => 0,
-            'max_value' => 100,
-            'weight' => 0.08,
-            'unit' => '%',
-            'status' => 'active',
-        ]);
-
-        $this->command->info('✓ KPI Master data seeded successfully');
-        $this->command->info('Run EmployeeKPIRecordsSeeder separately for employee records');
+        $this->command->info('✓ KPI Master data seeded successfully (Simplified to 2 indicators)');
     }
 }

@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('presence:remind-checkout')->everyFifteenMinutes();
+Schedule::command('kpi:calculate-daily')->dailyAt('00:00');

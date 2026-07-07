@@ -1,0 +1,213 @@
+@extends('layouts.dashboard')
+
+@section('content')
+<div class="page-heading">
+    <h3>Company KPI Dashboard</h3>
+    <p class="text-muted">Real-time performance monitoring across all employees</p>
+</div>
+
+<div class="page-content">
+    <div class="container-fluid">
+        
+        <!-- System Update Status -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-primary d-flex align-items-center justify-content-between">
+                    <div>
+                        <i class="bi bi-clock-history me-2"></i>
+                        <strong>Last System Calculation:</strong> {{ $lastUpdated ? \Carbon\Carbon::parse($lastUpdated)->format('d M Y, H:i') : 'Pending Calculation' }}
+                    </div>
+                    @if($nextUpdate)
+                        <div class="badge bg-light text-dark border p-2">
+                            <i class="bi bi-hourglass-split text-primary"></i> 
+                            Next Update: <span id="countdownTimer" class="fw-bold"></span>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <!-- Best Employee Widget -->
+            <div class="col-md-4">
+                <div class="card bg-gradient-primary text-white h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div class="card-body text-center p-4">
+                        <h5 class="text-white-50 mb-3">Employee of The Month</h5>
+                        <div class="mb-3">
+                            <i class="bi bi-trophy-fill text-warning" style="font-size: 4rem; text-shadow: 0 0 15px rgba(255,200,0,0.6);"></i>
+                        </div>
+                        @if($bestEmployee)
+                            <h3 class="text-white mb-1">{{ $bestEmployee['fullname'] }}</h3>
+                            <div class="mb-3">
+                                <a href="{{ route('kpi.show', $bestEmployee['employee_id']) }}" class="btn btn-sm btn-light rounded-pill px-3 mt-2 fw-bold text-primary">Lihat Profile <i class="bi bi-arrow-right ms-1"></i></a>
+                            </div>
+                            <p class="text-light mb-3">{{ $bestEmployee['department'] }} - {{ $bestEmployee['position'] }}</p>
+                            
+                            <div class="bg-white bg-opacity-25 rounded p-2 d-inline-block">
+                                <h4 class="mb-0 text-white">{{ round($bestEmployee['composite_score'], 2) }} <small class="fs-6">Score</small></h4>
+                            </div>
+                        @else
+                            <h4 class="text-white mt-4">Data Not Available</h4>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Summary -->
+            <div class="col-md-8">
+                <div class="row h-100">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <div class="card h-100 border-left-info shadow-sm">
+                            <div class="card-body d-flex flex-column justify-content-center">
+                                <h6 class="text-info font-weight-bold mb-1">Total Employees Monitored</h6>
+                                <h2 class="mb-0">{{ count($kpiData) }}</h2>
+                                <small class="text-muted">Active Employees in System</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 border-left-success shadow-sm">
+                            <div class="card-body d-flex flex-column justify-content-center">
+                                <h6 class="text-success font-weight-bold mb-1">Performance Period</h6>
+                                <h2 class="mb-0">{{ $period }}</h2>
+                                <small class="text-muted">Real-time Current Month Data</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Note -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="alert alert-info border-0 shadow-sm" style="background-color: #eef2ff; border-left: 5px solid #4f46e5 !important;">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="bi bi-info-circle-fill text-primary fs-4"></i>
+                        <div class="text-dark" style="font-size: 0.95rem;">
+                            <strong>Catatan Perhitungan:</strong> Nilai <strong>Composite Score</strong> masing-masing karyawan pada tabel di bawah ini merupakan akumulasi performa yang dihitung dari bobot <strong>50% tingkat Kepatuhan Checkout Presensi</strong> dan <strong>50% tingkat Kepatuhan Pengisian Log Pekerjaan harian</strong>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee List Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="card-title mb-0">Detailed Employee Performance Metrics</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="px-4">Rank</th>
+                                        <th>Employee Name</th>
+                                        <th>Department / Role</th>
+                                        <th class="text-center">Working Days</th>
+                                        <th class="text-center">Log Count</th>
+                                        <th>Checkout Compliance</th>
+                                        <th>Log Compliance</th>
+                                        <th>Composite Score</th>
+                                        <th class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($kpiData as $index => $data)
+                                    <tr>
+                                        <td class="px-4">
+                                            @if($index === 0)
+                                                <span class="badge bg-warning text-dark px-2 py-1"><i class="bi bi-star-fill"></i> 1</span>
+                                            @elseif($index === 1)
+                                                <span class="badge bg-secondary px-2 py-1">2</span>
+                                            @elseif($index === 2)
+                                                <span class="badge text-white px-2 py-1" style="background-color: #cd7f32 !important;">3</span>
+                                            @else
+                                                <span class="text-muted fw-bold ps-2">{{ $index + 1 }}</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <strong class="text-dark">{{ $data['fullname'] }}</strong>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold text-secondary">{{ $data['department'] }}</div>
+                                            <small class="text-muted">{{ $data['position'] }}</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-light text-dark border">{{ $data['working_days'] }} Days</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-light text-dark border">{{ $data['log_count'] }} Logs</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="text-{{ $data['checkout_percentage'] >= 100 ? 'success' : ($data['checkout_percentage'] >= 75 ? 'warning' : 'danger') }} fw-bold">
+                                                    {{ round($data['checkout_percentage'], 1) }}%
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="text-{{ $data['log_percentage'] >= 100 ? 'success' : ($data['log_percentage'] >= 75 ? 'warning' : 'danger') }} fw-bold">
+                                                    {{ round($data['log_percentage'], 1) }}%
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge rounded-pill bg-{{ $data['composite_score'] >= 80 ? 'success' : ($data['composite_score'] >= 60 ? 'warning' : 'danger') }} px-3 py-2">
+                                                {{ round($data['composite_score'], 2) }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <a href="{{ route('kpi.show', $data['employee_id']) }}" class="btn btn-sm btn-outline-primary rounded-pill">Lihat Profile</a>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="9" class="text-center py-5 text-muted">
+                                            <i class="bi bi-folder2-open" style="font-size: 3rem;"></i>
+                                            <p class="mt-3">No KPI Data Available. System will calculate automatically at midnight or run the command manually.</p>
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if($nextUpdate)
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const nextUpdateStr = "{{ $nextUpdate }}";
+        const countDownDate = new Date(nextUpdateStr.replace(/-/g, "/")).getTime(); 
+
+        const timerEl = document.getElementById("countdownTimer");
+        
+        const x = setInterval(function() {
+            const now = new Date().getTime();
+            const distance = countDownDate - now;
+
+            if (distance < 0) {
+                clearInterval(x);
+                timerEl.innerHTML = "Updating now...";
+                return;
+            }
+
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            timerEl.innerHTML = hours + "h " + minutes + "m " + seconds + "s";
+        }, 1000);
+    });
+</script>
+@endif
+@endsection

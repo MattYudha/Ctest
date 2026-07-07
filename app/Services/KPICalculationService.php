@@ -10,6 +10,7 @@ use App\Models\Incident;
 use App\Models\Signature;
 use App\Models\EmployeeKPIRecord;
 use App\Models\KPI;
+use App\Models\Holiday;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 
@@ -30,302 +31,155 @@ class KPICalculationService
     public function calculateAllKPIs()
     {
         return [
-            'attendance' => $this->calculateAttendanceMetrics(),
-            'productivity' => $this->calculateProductivityMetrics(),
-            'leave' => $this->calculateLeaveMetrics(),
-            'salary' => $this->calculateSalaryMetrics(),
-            'department' => $this->calculateDepartmentMetrics(),
-            'behavior' => $this->calculateBehaviorMetrics(),
-            'quality' => $this->calculateQualityMetrics(),
+            'attendance' => $this->calculateCheckoutMetrics(),
+            'productivity' => $this->calculateLogMetrics(),
         ];
     }
 
     /**
-     * 1. Attendance & Presence Metrics
+     * Helper to calculate actual working days taking into account holidays, leaves, and join date
      */
-    public function calculateAttendanceMetrics()
+    private function getActualWorkingDays()
     {
         $startDate = Carbon::createFromFormat('Y-m', $this->period)->startOfMonth();
-        $endDate = $startDate->copy()->endOfMonth();
+        $endDate = Carbon::createFromFormat('Y-m', $this->period)->endOfMonth();
+        $today = Carbon::now()->startOfDay();
+        
+        $calcEndDate = $endDate->isFuture() ? $today : $endDate;
 
-        // Count working days (excluding weekends)
-        $workingDays = CarbonPeriod::create($startDate, $endDate)
+        // If employee joined after the start of the month, adjust start date
+        if ($this->employee->hire_date && $this->employee->hire_date->isAfter($startDate)) {
+            $startDate = $this->employee->hire_date->copy()->startOfDay();
+        }
+
+        // If they joined after calcEndDate, they have 0 working days
+        if ($startDate->isAfter($calcEndDate)) {
+            return 0;
+        }
+
+        $workingDays = CarbonPeriod::create($startDate, $calcEndDate)
             ->filter(fn($date) => $date->isWeekday())
             ->count();
 
+        // Subtract Holidays
+        $holidays = Holiday::whereBetween('date', [$startDate->format('Y-m-d'), $calcEndDate->format('Y-m-d')])
+            ->get();
+
+        foreach ($holidays as $holiday) {
+            $hDate = Carbon::parse($holiday->date);
+            if ($hDate->isWeekday()) {
+                $workingDays--;
+            }
+        }
+
+        // Subtract Approved Leaves
+        $leaves = LeaveRequest::where('employee_id', $this->employee->id)
+            ->where('status', 'approved')
+            ->where(function($query) use ($startDate, $calcEndDate) {
+                $query->whereBetween('start_date', [$startDate->format('Y-m-d'), $calcEndDate->format('Y-m-d')])
+                      ->orWhereBetween('end_date', [$startDate->format('Y-m-d'), $calcEndDate->format('Y-m-d')]);
+            })
+            ->get();
+
+        foreach ($leaves as $leave) {
+            $lStart = Carbon::parse($leave->start_date);
+            $lEnd = Carbon::parse($leave->end_date);
+            
+            // Adjust bounds to only count days within current month window
+            $lStart = $lStart->isBefore($startDate) ? $startDate->copy() : $lStart;
+            $lEnd = $lEnd->isAfter($calcEndDate) ? $calcEndDate->copy() : $lEnd;
+
+            $leaveDays = CarbonPeriod::create($lStart, $lEnd)
+                ->filter(function($date) use ($holidays) {
+                    // Only subtract if it's a weekday and NOT already a holiday
+                    $isHoliday = $holidays->contains(function($h) use ($date) {
+                        return Carbon::parse($h->date)->isSameDay($date);
+                    });
+                    return $date->isWeekday() && !$isHoliday;
+                })
+                ->count();
+            
+            $workingDays -= $leaveDays;
+        }
+
+        return max(0, $workingDays);
+    }
+
+    /**
+     * 1. Kepatuhan Checkout (Checkout Compliance)
+     */
+    public function calculateCheckoutMetrics()
+    {
+        $startDate = Carbon::createFromFormat('Y-m', $this->period)->startOfMonth();
+        $endDate = Carbon::createFromFormat('Y-m', $this->period)->endOfMonth();
+        $today = Carbon::now()->startOfDay();
+        
+        $calcEndDate = $endDate->isFuture() ? $today : $endDate;
+
+        // Get actual expected working days
+        $expectedWorkingDays = $this->getActualWorkingDays();
+
         // Get presence records
         $presences = Presence::where('employee_id', $this->employee->id)
-            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $calcEndDate->format('Y-m-d')])
             ->get();
 
         $presentDays = $presences->count();
 
-        // Use config values to ensure consistency with PayrollsController
-        $workStart = config('presence.work_start_time', '08:00');
-        $lateThresholdMinutes = config('presence.late_threshold_minutes', 15);
-        $lateLimit = \Carbon\Carbon::createFromFormat('H:i', $workStart)
-            ->addMinutes($lateThresholdMinutes)
-            ->format('H:i');
-        $workEnd = config('presence.work_end_time', '17:00');
-
-        $lateDays = $presences->filter(function($p) use ($lateLimit) {
-            if (!$p->check_in) return false;
-            $checkInTime = is_string($p->check_in) ? $p->check_in : $p->check_in->format('H:i');
-            return $checkInTime > $lateLimit;
-        })->count();
-        $earlyCheckouts = $presences->filter(function($p) use ($workEnd) {
-            if (!$p->check_out) return false;
-            $checkOutTime = is_string($p->check_out) ? $p->check_out : $p->check_out->format('H:i');
-            return $checkOutTime < $workEnd;
+        // Hitung berapa hari yang ada check_out-nya
+        $checkoutCount = $presences->filter(function($p) {
+            return !empty($p->check_out);
         })->count();
 
         $metrics = [];
-
-        // Attendance Rate
-        $attendanceRate = $workingDays > 0 ? ($presentDays / $workingDays) * 100 : 0;
-        $metrics['attendance_rate'] = round($attendanceRate, 2);
-
-        // Punctuality
-        $punctualDays = $presentDays - $lateDays;
-        $punctuality = $presentDays > 0 ? ($punctualDays / $presentDays) * 100 : 0;
-        $metrics['punctuality'] = round($punctuality, 2);
-
-        // Tardiness Rate
-        $tardinessRate = $presentDays > 0 ? ($lateDays / $presentDays) * 100 : 0;
-        $metrics['tardiness_rate'] = round($tardinessRate, 2);
-
-        // Absence Rate
-        $absenceDays = $workingDays - $presentDays;
-        $absenceRate = $workingDays > 0 ? ($absenceDays / $workingDays) * 100 : 0;
-        $metrics['absence_rate'] = round($absenceRate, 2);
-
-        // Early Checkout Rate
-        $earlyCheckoutRate = $presentDays > 0 ? ($earlyCheckouts / $presentDays) * 100 : 0;
-        $metrics['early_checkout_rate'] = round($earlyCheckoutRate, 2);
-
-        // Raw counts for reporting
-        $metrics['present_days'] = $presentDays;
-        $metrics['absent_days'] = $absenceDays;
-        $metrics['late_count'] = $lateDays;
-        $metrics['working_days'] = $workingDays;
-
-        return $metrics;
-    }
-
-    /**
-     * 2. Task Completion & Productivity Metrics
-     */
-    public function calculateProductivityMetrics()
-    {
-        $startDate = Carbon::createFromFormat('Y-m', $this->period)->startOfMonth();
-        $endDate = $startDate->copy()->endOfMonth();
-
-        $tasks = Task::where('assigned_to', $this->employee->id)
-            ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
-            ->get();
-
-        $completedTasks = $tasks->where('status', 'completed')->count();
-        $totalTasks = $tasks->count();
-        $onTimeTasks = $tasks->where('status', 'completed')
-            ->filter(fn($t) => $t->completed_at && $t->due_date && $t->completed_at->lte($t->due_date))
-            ->count();
-        $overdueTasks = $tasks->where('status', 'completed')
-            ->filter(fn($t) => $t->completed_at && $t->due_date && $t->completed_at->gt($t->due_date))
-            ->count();
-
-        $metrics = [];
-
-        // Task Completion Rate
-        $completionRate = $totalTasks > 0 ? ($completedTasks / $totalTasks) * 100 : 0;
-        $metrics['task_completion_rate'] = round($completionRate, 2);
-
-        // On-time Delivery Rate
-        $onTimeRate = $completedTasks > 0 ? ($onTimeTasks / $completedTasks) * 100 : 0;
-        $metrics['on_time_delivery_rate'] = round($onTimeRate, 2);
-
-        // Task Overdue Rate
-        $overdueRate = $totalTasks > 0 ? ($overdueTasks / $totalTasks) * 100 : 0;
-        $metrics['overdue_rate'] = round($overdueRate, 2);
-
-        // Raw Counts
-        $metrics['completed_tasks_count'] = $completedTasks;
-        $metrics['active_tasks'] = $tasks->where('status', 'in-progress')->count();
-        $metrics['pending_tasks'] = $tasks->where('status', 'pending')->count();
-
-        return $metrics;
-    }
-
-    /**
-     * 3. Leave & Time-Off Metrics
-     */
-    public function calculateLeaveMetrics()
-    {
-        $startDate = Carbon::createFromFormat('Y-m', $this->period)->startOfMonth();
-        $endDate = $startDate->copy()->endOfMonth();
-
-        $leaveRequests = LeaveRequest::where('employee_id', $this->employee->id)
-            ->whereBetween('start_date', [$startDate, $endDate])
-            ->where('status', 'approved')
-            ->get();
-
-        $totalLeaveDays = $leaveRequests->sum(fn($lr) => $lr->total_days ?? 0);
-
-        $metrics = [];
-
-        // Total Leave Days
-        $metrics['total_leave_days'] = $totalLeaveDays;
-
-        // Leave Types breakdown
-        $leaveByType = $leaveRequests->groupBy('leave_type')->map->count();
-        foreach ($leaveByType as $type => $count) {
-            $metrics['leave_' . strtolower(str_replace(' ', '_', $type))] = $count;
-        }
-
-        return $metrics;
-    }
-
-    /**\n     * 4. Salary & Compensation Metrics\n     */
-    public function calculateSalaryMetrics()
-    {
-        $metrics = [];
-
-        // Base Salary
-        $metrics['base_salary'] = $this->employee->salary ?? 0;
-
-        // Salary Grade (based on role)
-        $role = $this->employee->role?->title ?? 'N/A';
-        $metrics['salary_grade'] = $role;
-
-        return $metrics;
-    }
-
-    /**
-     * 5. Department & Role-Based Metrics
-     */
-    public function calculateDepartmentMetrics()
-    {
-        if (!$this->employee->department_id) {
-            return [
-                'dept_avg_attendance' => 0,
-                'dept_avg_task_completion' => 0,
-            ];
-        }
-
-        $cacheKey = "dept_metrics_{$this->employee->department_id}_{$this->period}";
         
-        return \Cache::remember($cacheKey, now()->addHours(6), function() {
-            $metrics = [];
-
-            // Get all employees in same department
-            $departmentEmployees = Employee::where('department_id', $this->employee->department_id)->get();
-
-            if ($departmentEmployees->count() === 0) {
-                return [
-                    'dept_avg_attendance' => 0,
-                    'dept_avg_task_completion' => 0,
-                ];
-            }
-
-            // Department Attendance Average
-            $avgAttendance = 0;
-            foreach ($departmentEmployees as $emp) {
-                $empMetrics = (new static($emp, $this->period))->calculateAttendanceMetrics();
-                $avgAttendance += $empMetrics['attendance_rate'] ?? 0;
-            }
-            $metrics['dept_avg_attendance'] = round($avgAttendance / $departmentEmployees->count(), 2);
-
-            // Department Task Completion Average
-            $avgCompletion = 0;
-            foreach ($departmentEmployees as $emp) {
-                $empMetrics = (new static($emp, $this->period))->calculateProductivityMetrics();
-                $avgCompletion += $empMetrics['task_completion_rate'] ?? 0;
-            }
-            $metrics['dept_avg_task_completion'] = round($avgCompletion / $departmentEmployees->count(), 2);
-
-            return $metrics;
-        });
-    }
-
-    /**
-     * 6. Behavior & Conduct Metrics\n     */
-    public function calculateBehaviorMetrics()
-    {
-        $startDate = Carbon::createFromFormat('Y-m', $this->period)->startOfMonth();
-        $endDate = $startDate->copy()->endOfMonth();
-
-        // Count incidents
-        $incidents = Incident::where('employee_id', $this->employee->id)
-            ->whereBetween('incident_date', [$startDate, $endDate])
-            ->get();
-
-        // Count document signatures
-        $signatures = Signature::where('user_id', $this->employee->user_id ?? null)
-            ->whereBetween('signed_date', [$startDate->startOfDay(), $endDate->endOfDay()])
-            ->get();
-
-        $verifiedSignatures = $signatures->where('is_verified', true)->count();
-
-        $metrics = [];
-
-        // Compliance Score (100 - incidents)
-        $incidentCount = $incidents->count();
-        $metrics['compliance_score'] = max(0, 100 - ($incidentCount * 10)); // 10 points per incident
-
-        // Document Signing Speed
-        if ($signatures->count() > 0) {
-            $avgSigningHours = $signatures->avg(fn($s) => $s->created_at?->diffInHours($s->signed_date) ?? 0);
-            $metrics['document_signing_speed'] = round($avgSigningHours, 2);
-        } else {
-            $metrics['document_signing_speed'] = 0;
-        }
-
-        // Signature Verification Rate
-        $metrics['signature_verification_rate'] = $signatures->count() > 0
-            ? round(($verifiedSignatures / $signatures->count()) * 100, 2)
-            : 0;
-
-        // Incident severity score
-        $severityScore = $incidents->sum(fn($i) => match($i->severity) {
-            'low' => 1,
-            'medium' => 3,
-            'high' => 5,
-            'critical' => 10,
-            default => 0,
-        });
-        $metrics['conduct_score'] = max(0, 100 - $severityScore);
-
+        // Denominator must be expected working days, not just present days, to prevent 1-day 100% bug
+        $checkoutPercentage = $expectedWorkingDays > 0 ? ($checkoutCount / $expectedWorkingDays) * 100 : 0;
+        
+        // Clamping min 0 max 100 and rounding
+        $metrics['checkout_compliance'] = round(max(0, min(100, $checkoutPercentage)), 2);
+        
+        // Raw data for other dashboard usages
+        $metrics['present_days'] = $presentDays;
+        $metrics['checkout_count'] = $checkoutCount;
+        $metrics['expected_working_days'] = $expectedWorkingDays;
+        
         return $metrics;
     }
 
     /**
-     * 7. Quality & Efficiency Metrics
+     * 2. Persentase Pengisian Log (Log Percentage)
      */
-    public function calculateQualityMetrics()
+    public function calculateLogMetrics()
     {
         $startDate = Carbon::createFromFormat('Y-m', $this->period)->startOfMonth();
-        $endDate = $startDate->copy()->endOfMonth();
+        $endDate = Carbon::createFromFormat('Y-m', $this->period)->endOfMonth();
+        $today = Carbon::now()->startOfDay();
+        
+        $calcEndDate = $endDate->isFuture() ? $today : $endDate;
 
-        // Get completed tasks with quality ratings
-        $tasks = Task::where('assigned_to', $this->employee->id)
-            ->whereBetween('completed_at', [$startDate->startOfDay(), $endDate->endOfDay()])
-            ->whereNotNull('quality_rating')
-            ->get();
+        // Get actual working days (excluding weekends, holidays, leaves)
+        $expectedWorkingDays = $this->getActualWorkingDays();
+
+        // Get unique dates where a log was submitted
+        $uniqueLogDaysCount = \App\Models\WorkLog::where('employee_id', $this->employee->id)
+            ->whereBetween('log_date', [$startDate->format('Y-m-d'), $calcEndDate->format('Y-m-d')])
+            ->pluck('log_date')
+            ->unique()
+            ->count();
 
         $metrics = [];
-
-        // Calculate average quality score from actual ratings
-        if ($tasks->count() > 0) {
-            $avgQuality = $tasks->avg('quality_rating'); // Already 1-5 scale
-            $metrics['task_quality_score'] = round($avgQuality, 2);
-            $metrics['rated_tasks_count'] = $tasks->count();
-        } else {
-            // If no ratings yet, return 0 instead of placeholder
-            $metrics['task_quality_score'] = 0;
-            $metrics['rated_tasks_count'] = 0;
-        }
-
-        // Efficiency Index - placeholder for now, requires estimated vs actual hours
-        $metrics['efficiency_index'] = 1.0;
+        
+        // Asumsi 1 hari minimal 1 log (kalau lebih dihitung max 100%)
+        // We use uniqueLogDaysCount to prevent users from spamming 20 logs on 1 day to hit 100%
+        $logPercentage = $expectedWorkingDays > 0 ? ($uniqueLogDaysCount / $expectedWorkingDays) * 100 : 0;
+        
+        // Clamping min 0 max 100 and rounding
+        $metrics['log_percentage'] = round(max(0, min(100, $logPercentage)), 2);
+        
+        // Raw data
+        $metrics['unique_log_days'] = $uniqueLogDaysCount;
+        $metrics['expected_working_days'] = $expectedWorkingDays;
 
         return $metrics;
     }
@@ -385,6 +239,10 @@ class KPICalculationService
         }
 
         $finalScore = $totalWeight > 0 ? $totalWeightedScore / $totalWeight : 0;
+        
+        // Clamping to ensure composite score doesn't exceed 100 or fall below 0
+        $finalScore = max(0, min(100, $finalScore));
+        
         $level = self::getPerformanceLevel($finalScore);
 
         return [

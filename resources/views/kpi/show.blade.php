@@ -8,6 +8,11 @@
             <p class="text-muted">{{ $employee->department->name }} • {{ $employee->role?->title }}</p>
         </div>
         <div>
+            @if(in_array(session('role'), [\App\Constants\Roles::MASTER_ADMIN, \App\Constants\Roles::HR_ADMINISTRATOR]))
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addKPIModal">
+                <i class="bi bi-plus-circle"></i> Tambah KPI Manual
+            </button>
+            @endif
             <a href="{{ route('kpi.trend', $employee->id) }}" class="btn btn-sm btn-outline-success">
                 <i class="bi bi-graph-up"></i> View Trend
             </a>
@@ -162,11 +167,20 @@
                                         </td>
                                         @if(in_array(session('role'), [\App\Constants\Roles::MASTER_ADMIN, \App\Constants\Roles::HR_ADMINISTRATOR]))
                                         <td class="text-center">
-                                            <a href="{{ route('kpi.admin-edit', [$employee->id, $record->record->id ?? $record->id]) }}"
-                                               class="btn btn-xs btn-outline-warning py-0 px-2"
-                                               title="Edit manual (Admin)">
-                                                <i class="bi bi-pencil-fill" style="font-size:0.75rem;"></i>
-                                            </a>
+                                            <div class="d-flex justify-content-center gap-1">
+                                                <a href="{{ route('kpi.admin-edit', [$employee->id, $record->record->id ?? $record->id]) }}"
+                                                   class="btn btn-xs btn-outline-warning py-0 px-2"
+                                                   title="Edit manual (Admin)">
+                                                    <i class="bi bi-pencil-fill" style="font-size:0.75rem;"></i>
+                                                </a>
+                                                <form action="{{ route('kpi.destroy-record', $record->record->id ?? $record->id) }}" method="POST" class="delete-kpi-form d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-2 delete-kpi" title="Hapus Metrik">
+                                                        <i class="bi bi-trash-fill" style="font-size:0.75rem;"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                         @endif
                                     </tr>
@@ -238,12 +252,125 @@
             </div>
         </div>
     </div>
+
+<!-- Add KPI Modal -->
+<div class="modal fade" id="addKPIModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <form action="{{ route('kpi.store') }}" method="POST">
+                @csrf
+                <input type="hidden" name="employee_id" value="{{ $employee->id }}">
+                <input type="hidden" name="period" value="{{ $period }}">
+                
+                <div class="modal-header border-0 pb-0 bg-white">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; background: #EEF2FF;">
+                            <i class="bi bi-plus-circle-fill fs-3 text-primary"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-800 text-dark ls-tight" style="letter-spacing: -0.5px;">Tambah KPI Manual</h5>
+                            <p class="mb-0 text-muted extra-small fw-600">Assign metrik penilaian baru ke periode berjalan.</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body py-4">
+                    <div class="mb-4" id="selectKpiContainer">
+                        <label for="kpi_id" class="form-label text-muted extra-small fw-800 ls-1">PILIH METRIK KPI</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-primary"><i class="bi bi-list-stars"></i></span>
+                            <select class="form-select border-start-0 ps-1 fw-600" id="kpi_id" name="kpi_id" required>
+                                <option value="">-- Silakan Pilih KPI --</option>
+                                @foreach(\App\Models\KPI::where('status', 'active')->get() as $k)
+                                    <option value="{{ $k->id }}" data-auto="{{ $k->metric_category ? 'true' : 'false' }}" data-target="{{ $k->target_value }}">[{{ $k->category }}] {{ $k->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <input type="hidden" name="is_new_kpi" id="is_new_kpi" value="0">
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label for="add_target_value" class="form-label text-muted extra-small fw-800 ls-1">NILAI TARGET</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0 text-secondary"><i class="bi bi-bullseye"></i></span>
+                                <input type="number" step="0.01" class="form-control border-start-0 ps-1 fw-700" id="add_target_value" name="target_value" value="100" required>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label for="add_actual_value" class="form-label text-muted extra-small fw-800 ls-1">NILAI AKTUAL</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0 text-warning"><i class="bi bi-lightning-charge-fill"></i></span>
+                                <input type="number" step="0.01" class="form-control border-start-0 ps-1 fw-800 text-dark" id="add_actual_value" name="actual_value" required placeholder="0.00">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label for="add_notes" class="form-label text-muted extra-small fw-800 ls-1">CATATAN PENDUKUNG (OPSIONAL)</label>
+                        <textarea class="form-control" id="add_notes" name="notes" rows="3" placeholder="Tuliskan justifikasi atau keterangan nilai aktual..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="modal-footer border-0 bg-light bg-opacity-50">
+                    <button type="button" class="btn btn-link text-muted fw-bold text-decoration-none px-4" data-bs-dismiss="modal">Batalkan</button>
+                    <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                        <i class="bi bi-cloud-arrow-up-fill"></i> Simpan Data KPI
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
+@push('scripts')
 <script>
     function changePeriod() {
         const period = document.getElementById('periodSelect').value;
-        window.location.href = `{{ route('kpi.show', $employee->id) }}?period=${period}`;
+        if(period) {
+            window.location.href = `{{ route('kpi.show', $employee->id) }}?period=${period}`;
+        }
     }
+    
+    $(function() {
+        $('#addKPIModal').appendTo('body');
+        
+        // Delete KPI confirmation
+        $('.delete-kpi').on('click', function(e) {
+            e.preventDefault();
+            const form = $(this).closest('form');
+            
+            Swal.fire({
+                title: 'Hapus Metrik KPI?',
+                text: "Data metrik ini akan dihapus permanen dari periode ini.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal',
+                customClass: {
+                    confirmButton: 'btn btn-danger px-4',
+                    cancelButton: 'btn btn-light px-4'
+                },
+                buttonsStyling: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+        
+        $('#kpi_id').on('change', function() {
+            var selected = $(this).find('option:selected');
+            if (selected.data('auto') === true || selected.data('auto') === 'true') {
+                $('#add_target_value').val(selected.data('target'));
+            } else {
+                $('#add_target_value').val(selected.data('target'));
+            }
+        });
+    });
 </script>
+@endpush
 @endsection

@@ -69,7 +69,19 @@ class KPIController extends Controller
             $incidents = collect([]);
         }
 
-        $allKpis = \App\Models\KPI::where('status', 'active')->get();
+        $calcService = new \App\Services\KPICalculationService($employee, $period);
+        $liveMetrics = $calcService->getFlatMetrics();
+        $allKpis = \App\Models\KPI::where('status', 'active')->get()->map(function($k) use ($liveMetrics) {
+            $cat = strtolower($k->metric_category ?? '');
+            if ($cat === 'attendance') {
+                $k->calculated_actual = $liveMetrics['attendance.checkout_compliance'] ?? 0;
+            } elseif ($cat === 'productivity') {
+                $k->calculated_actual = $liveMetrics['productivity.log_percentage'] ?? 0;
+            } else {
+                $k->calculated_actual = 0;
+            }
+            return $k;
+        });
 
         // Period navigation helpers
         $periodCarbon   = \Carbon\Carbon::createFromFormat('Y-m', $period)->startOfMonth();
@@ -126,7 +138,7 @@ class KPIController extends Controller
             $performanceReview = null;
         }
 
-        $allKpis = \App\Models\KPI::where('is_active', true)->get();
+        $allKpis = \App\Models\KPI::where('status', 'active')->get();
 
         return view('kpi.show', compact('employee', 'period', 'kpiRecords', 'kpisByCategory', 'performanceReview', 'compositeScore', 'performanceLevel', 'allKpis'));
     }
@@ -288,6 +300,27 @@ class KPIController extends Controller
     }
 
     /**
+     * Show company-wide KPI Dashboard (for HR/Master Admin)
+     */
+    public function companyDashboard()
+    {
+        $cacheData = \Illuminate\Support\Facades\Cache::get('company_kpi_dashboard_data', null);
+        
+        $lastUpdated = $cacheData['last_updated'] ?? null;
+        $nextUpdate = $cacheData['next_update'] ?? null;
+        $kpiData = $cacheData['data'] ?? [];
+        
+        $bestEmployee = null;
+        if (!empty($kpiData)) {
+            $bestEmployee = $kpiData[0]; // since it's sorted by composite_score desc
+        }
+        
+        $period = \Carbon\Carbon::now()->format('F Y');
+
+        return view('kpi.company', compact('kpiData', 'lastUpdated', 'nextUpdate', 'bestEmployee', 'period'));
+    }
+
+    /**
      * Show pending KPI approvals for manager
      */
     public function pendingApprovals()
@@ -422,11 +455,22 @@ class KPIController extends Controller
             $metrics = $service->calculateAllKPIs();
 
             // 2. Dynamic KPI Mapping using Role-based configuration
-            $kpis = $employee->role->kpis()
-                ->whereNotNull('metric_category')
-                ->whereNotNull('metric_key')
-                ->get();
+            if ($employee->role) {
+                $kpis = $employee->role->kpis()
+                    ->whereNotNull('metric_category')
+                    ->whereNotNull('metric_key')
+                    ->get();
+            } else {
+                $kpis = collect();
+            }
 
+            // Fallback: If no KPIs mapped to role, use all active KPIs globally
+            if ($kpis->isEmpty()) {
+                $kpis = \App\Models\KPI::where('status', 'active')
+                    ->whereNotNull('metric_category')
+                    ->whereNotNull('metric_key')
+                    ->get();
+            }
             foreach ($kpis as $kpi) {
                 // Get actual value from calculated metrics using dynamic mapping
                 $actualValue = $metrics[$kpi->metric_category][$kpi->metric_key] ?? 0;
@@ -435,7 +479,15 @@ class KPIController extends Controller
                 $target = $kpi->pivot->target_value ?? ($kpi->target_value > 0 ? $kpi->target_value : 100);
                 $weight = $kpi->pivot->weight ?? ($kpi->weight ?? 0);
                 
-                $achievement = ($actualValue / $target) * 100;
+                // Safe division to prevent division by zero
+                $achievement = $target > 0 ? ($actualValue / $target) * 100 : 0;
+                
+                // Clamping (min 0, max 100)
+                $achievement = max(0, min(100, $achievement));
+                
+                // Decimal precision to 2 digits
+                $achievement = round($achievement, 2);
+                
                 $perf = KPICalculationService::getPerformanceLevel($achievement);
                 
                 // Status mapping based on achievement

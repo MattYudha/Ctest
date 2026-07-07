@@ -31,7 +31,7 @@ class Role extends Model
      */
     public function kpis()
     {
-        return $this->belongsToMany(KPI::class, 'role_kpi')
+        return $this->belongsToMany(KPI::class, 'role_kpi', 'role_id', 'kpi_id')
             ->withPivot(['target_value', 'weight'])
             ->withTimestamps();
     }

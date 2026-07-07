@@ -135,6 +135,7 @@
                             $activeKpiTeam = request()->is('kpi/team*');
                             $activeKpiDepartment = request()->is('kpi/department*');
                             $activeKpiPending = request()->is('kpi/pending*') || request()->is('kpi/pending-approvals*');
+                            $activeKpiCompany = request()->is('kpi/company*');
 
                             $activeFinanceTransactions = request()->is('finance/transactions*');
                             $activeFinanceEntities = request()->is('finance/entities*');
@@ -187,7 +188,7 @@
                                 $activePositions ||
                                 $activeHolidaysManagement;
                             $crmMenuActive = $activeCrmDashboard || $activeCrmBoard || $activeCrmContacts || $activeCrmEmailBlasts || $activeCrmWaBlasts || $activeCrmTemplates;
-                            $kpiMenuActive = $activeKpiDashboard || $activeKpiTeam || $activeKpiDepartment || $activeKpiPending;
+                            $kpiMenuActive = $activeKpiDashboard || $activeKpiTeam || $activeKpiDepartment || $activeKpiPending || $activeKpiCompany;
                             $financeMenuActive =
                                 $activeFinanceTransactions ||
                                 $activeFinanceEntities ||
@@ -334,11 +335,7 @@
                                             <a href="{{ url('/payrolls') }}" class="submenu-link">Payrolls</a>
                                         </li>
                                     @endif
-                                    @if ($user->hasAccess('hr_reports') || $isAdmin || $isManager)
-                                        <li class="submenu-item {{ $activeKpiDashboard ? 'active' : '' }}">
-                                            <a href="{{ url('/kpi/dashboard') }}" class="submenu-link">KPI Dashboard</a>
-                                        </li>
-                                    @endif
+
                                     @if ($isMasterAdmin || $isManager)
                                         <li class="submenu-item {{ $activeKpiTeam ? 'active' : '' }}">
                                             <a href="{{ url('/kpi/team') }}" class="submenu-link">Team KPI</a>
@@ -351,6 +348,13 @@
                                         <li class="submenu-item {{ $activeKpiPending ? 'active' : '' }}">
                                             <a href="{{ url('/kpi/pending') }}" class="submenu-link"
                                                 >Pending Approvals</a
+                                            >
+                                        </li>
+                                    @endif
+                                    @if ($role === \App\Constants\Roles::MASTER_ADMIN || $role === \App\Constants\Roles::HR_ADMINISTRATOR || $role === 'Administrator' || $isAdmin)
+                                        <li class="submenu-item {{ $activeKpiCompany ? 'active' : '' }}">
+                                            <a href="{{ url('/kpi/company') }}" class="submenu-link"
+                                                >Company KPI</a
                                             >
                                         </li>
                                     @endif
@@ -535,6 +539,13 @@
                             <a href="{{ url('/knowledge-base') }}" class="sidebar-link">
                                 <i class="bi bi-book"></i>
                                 <span>Knowledge Base</span>
+                            </a>
+                        </li>
+
+                        <li class="sidebar-item {{ $activeKpiDashboard ? 'active' : '' }}">
+                            <a href="{{ url('/kpi/dashboard') }}" class="sidebar-link">
+                                <i class="bi bi-bar-chart-line"></i>
+                                <span>My KPI</span>
                             </a>
                         </li>
 
