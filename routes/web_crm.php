@@ -3,6 +3,7 @@ use App\Http\Controllers\Crm\ContactController;
 use App\Http\Controllers\Crm\EmailBlastController;
 use App\Http\Controllers\Crm\CrmDashboardController;
 use App\Http\Controllers\Crm\CrmBoardController;
+use App\Http\Controllers\Crm\EmailInboxController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'role:' . \App\Constants\Roles::SUPER_ADMIN . ',' . \App\Constants\Roles::MASTER_ADMIN . ',' . \App\Constants\Roles::SALES])
@@ -40,4 +41,6 @@ Route::middleware(['auth', 'verified', 'role:' . \App\Constants\Roles::SUPER_ADM
             'destroy',
         ]);
         Route::post('wa-blasts/{id}/mark-sent', [\App\Http\Controllers\Crm\WaBlastController::class, 'markAsSent'])->name('wa-blasts.mark-sent');
+    
+        Route::resource('email-inbox', EmailInboxController::class)->only(['index']);
     });

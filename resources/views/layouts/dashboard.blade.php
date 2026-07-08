@@ -130,6 +130,7 @@
                             $activeCrmEmailBlasts = request()->is('crm/email-blasts*');
                             $activeCrmWaBlasts = request()->is('crm/wa-blasts*');
                             $activeCrmTemplates = request()->is('crm/templates*');
+                            $activeCrmEmailInbox = request()->is('crm/email-inbox*');
 
                             $activeKpiDashboard = request()->is('kpi/dashboard*') || request()->is('kpi-dashboard*');
                             $activeKpiTeam = request()->is('kpi/team*');
@@ -186,7 +187,7 @@
                                 $activeIncidents ||
                                 $activePositions ||
                                 $activeHolidaysManagement;
-                            $crmMenuActive = $activeCrmDashboard || $activeCrmBoard || $activeCrmContacts || $activeCrmEmailBlasts || $activeCrmWaBlasts || $activeCrmTemplates;
+                            $crmMenuActive = $activeCrmDashboard || $activeCrmBoard || $activeCrmContacts || $activeCrmEmailBlasts || $activeCrmWaBlasts || $activeCrmTemplates || $activeCrmEmailInbox;
                             $kpiMenuActive = $activeKpiDashboard || $activeKpiTeam || $activeKpiDepartment || $activeKpiPending;
                             $financeMenuActive =
                                 $activeFinanceTransactions ||
@@ -311,6 +312,9 @@
                                     </li>
                                     <li class="submenu-item {{ $activeCrmEmailBlasts ? 'active' : '' }}">
                                         <a href="{{ url('crm/email-blasts') }}" class="submenu-link">Email Blasts</a>
+                                    </li>
+                                    <li class="submenu-item {{ $activeCrmEmailInbox ? 'active' : '' }}">
+                                        <a href="{{ url('crm/email-inbox') }}" class="submenu-link">Email Inbox</a>
                                     </li>
                                     <li class="submenu-item {{ $activeCrmWaBlasts ? 'active' : '' }}">
                                         <a href="{{ url('crm/wa-blasts') }}" class="submenu-link">WA Blasts</a>
