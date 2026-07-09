@@ -108,6 +108,18 @@ class PresencesController extends Controller
                         $row->check_in &&
                         !$row->check_out
                     ) {
+                        $workTypeLower = strtolower($row->work_type ?? 'WFO');
+                        $enableMaxCheckout = \App\Models\Setting::getValue('enable_max_checkout_' . $workTypeLower, '0') === '1';
+                        
+                        if ($enableMaxCheckout) {
+                            $maxCheckoutTimeStr = \App\Models\Setting::getValue('max_checkout_time_' . $workTypeLower, '17:30');
+                            $maxCheckoutTime = Carbon::parse(date('Y-m-d') . ' ' . $maxCheckoutTimeStr);
+                            
+                            if (Carbon::now()->gt($maxCheckoutTime)) {
+                                return '-';
+                            }
+                        }
+
                         return '<a href="' .
                             route('presences.checkout') .
                             '" class="btn btn-sm btn-success">Check Out</a>';
@@ -707,6 +719,23 @@ class PresencesController extends Controller
             return redirect()
                 ->route('presences.checkout')
                 ->with('error', 'Check-out time cannot be before check-in time.');
+        }
+
+        // check max checkout time configuration based on work type
+        $workTypeLower = strtolower($workType);
+        $enableMaxCheckoutKey = 'enable_max_checkout_' . $workTypeLower;
+        $maxCheckoutTimeKey = 'max_checkout_time_' . $workTypeLower;
+
+        $enableMaxCheckout = Setting::getValue($enableMaxCheckoutKey, '0') === '1';
+        if ($enableMaxCheckout) {
+            $maxCheckoutTimeStr = Setting::getValue($maxCheckoutTimeKey, '17:30');
+            $maxCheckoutTime = Carbon::parse(date('Y-m-d') . ' ' . $maxCheckoutTimeStr);
+
+            if ($checkOutTime->gt($maxCheckoutTime)) {
+                return redirect()
+                    ->route('presences.index')
+                    ->with('error', 'You cannot check-out because it is past the maximum allowed check-out time (' . $maxCheckoutTimeStr . ') for ' . $workType . '.');
+            }
         }
 
         // for wfo, calculate gps distance but do not block the checkout if out of bounds

@@ -49,14 +49,53 @@ class CrmBoardController extends Controller
             'description' => 'nullable|string',
             'crm_contact_id' => 'nullable|exists:crm_contacts,id',
             'value' => 'nullable|numeric',
-            'status' => 'required|string'
+            'status' => 'required|string',
+            'is_new_contact' => 'nullable',
+            'new_contact_name' => 'required_with:is_new_contact|nullable|string|max:255',
+            'new_contact_phone' => 'nullable|string|max:50',
+            'new_contact_email' => 'nullable|email|max:255',
         ]);
+
+        if ($request->has('is_new_contact')) {
+            // Check for duplicates
+            $duplicateContact = CrmContact::where(function($query) use ($request) {
+                $query->where('company_name', $request->input('new_contact_name'));
+                
+                if ($request->filled('new_contact_email')) {
+                    $query->orWhere('email', $request->input('new_contact_email'));
+                }
+                
+                if ($request->filled('new_contact_phone')) {
+                    $query->orWhere('phone', $request->input('new_contact_phone'));
+                }
+            })->first();
+
+            if ($duplicateContact) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'A contact with this Company Name, Email, or Phone already exists. Please select it from the dropdown instead.');
+            }
+
+            // Create new contact
+            $newContact = CrmContact::create([
+                'company_name' => $request->input('new_contact_name'),
+                'phone' => $request->input('new_contact_phone'),
+                'email' => $request->input('new_contact_email'),
+                'created_by' => auth()->id(),
+                'source' => 'Pipeline Quick Add',
+            ]);
+
+            $validated['crm_contact_id'] = $newContact->id;
+        }
 
         $validated['created_by'] = auth()->id();
         
         // Get max order for this status
         $maxOrder = CrmDeal::where('status', $validated['status'])->max('order');
         $validated['order'] = $maxOrder !== null ? $maxOrder + 1 : 0;
+
+        // Clean up virtual fields
+        unset($validated['is_new_contact'], $validated['new_contact_name'], $validated['new_contact_phone'], $validated['new_contact_email']);
 
         CrmDeal::create($validated);
 
