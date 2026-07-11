@@ -277,7 +277,7 @@
                 </div>
                 <div class="p-2 px-3 border-top border-soft" style="background-color: #fafafa;">
                     <div class="d-flex justify-content-between fw-bold small">
-                        <span class="text-dark">Total Reimbursement (B)</span><span class="text-teal">Rp {{ number_format($reimbursement, 0, ',', '.') }}</span>
+                        <span class="text-dark">Total Reimbursement (C)</span><span class="text-teal">Rp {{ number_format($reimbursement, 0, ',', '.') }}</span>
                     </div>
                 </div>
             </div>
