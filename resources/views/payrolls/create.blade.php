@@ -265,7 +265,7 @@
                                         class="form-control border-end-0"
                                         value="{{ old('overtime_hours', 0) }}"
                                         min="0"
-                                        step="0.5"
+                                        step="any"
                                     />
                                     <span class="input-group-text text-muted">Hours</span>
                                 </div>
@@ -290,30 +290,6 @@
                                 <small class="text-muted"
                                     >Rate: Rp. {{ $config['overtime_rate_per_hour'] }} / hours</small
                                 >
-                            </div>
-                        </div>
-                    </div>
-
-                    <hr class="text-muted my-4" />
-
-                    <h6 class="text-success fw-bold mb-3"><i class="bi bi-cash-stack me-2"></i> Reimbursement</h6>
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <label class="form-label fw-semibold text-secondary">Approved Reimbursement</label>
-                            <div class="input-group">
-                                <span class="input-group-text border-end-0 text-muted">Rp</span>
-                                <input
-                                    type="text"
-                                    inputmode="numeric"
-                                    name="reimbursement"
-                                    id="reimbursement"
-                                    class="form-control border-start-0 calc-earning format-rupiah"
-                                    value="{{ old('reimbursement', 0) }}"
-                                    readonly
-                                />
-                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#reimbursementModal">
-                                    <i class="bi bi-eye"></i> View Details
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -403,7 +379,36 @@
                 </div>
             </div>
 
-            {{-- section 3: deductions --}}
+            {{-- section 3: reimbursement --}}
+            <div class="card shadow-sm border-start border-info border-4 rounded-3 mb-4">
+                <div class="card-header bg-info-subtle border-bottom-0 py-3 rounded-top-4">
+                    <h5 class="mb-0 text-info fw-bold"><i class="bi bi-cash-stack me-2"></i> Reimbursement</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-secondary">Approved Reimbursement</label>
+                            <div class="input-group">
+                                <span class="input-group-text border-end-0 text-muted">Rp</span>
+                                <input
+                                    type="text"
+                                    inputmode="numeric"
+                                    name="reimbursement"
+                                    id="reimbursement"
+                                    class="form-control border-start-0 format-rupiah"
+                                    value="{{ old('reimbursement', 0) }}"
+                                    readonly
+                                />
+                                <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#reimbursementModal">
+                                    <i class="bi bi-eye"></i> View Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- section 4: deductions --}}
             <div class="card shadow-sm border-start border-danger border-4 rounded-3 mb-4">
                 <div class="card-header bg-danger-subtle border-bottom-0 py-3 rounded-top-4">
                     <h5 class="mb-0 text-danger fw-bold"><i class="bi bi-scissors me-2"></i> Deductions</h5>
@@ -740,7 +745,6 @@
                                     <tr><td class="text-secondary py-2">Performance Bonus</td><td class="text-end fw-semibold text-body py-2" id="summary-performance_bonus">Rp 0</td></tr>
                                     <tr><td class="text-secondary py-2">Attendance Bonus</td><td class="text-end fw-semibold text-body py-2" id="summary-attendance_bonus">Rp 0</td></tr>
                                     <tr><td class="text-secondary py-2">Other Bonus</td><td class="text-end fw-semibold text-body py-2" id="summary-other_bonus">Rp 0</td></tr>
-                                    <tr><td class="text-secondary py-2">Reimbursement</td><td class="text-end fw-semibold text-body py-2" id="summary-reimbursement">Rp 0</td></tr>
                                 </table>
                             </div>
                         </div>
@@ -779,6 +783,10 @@
                                     <tr>
                                         <td class="fw-semibold fs-5 text-secondary py-2">Total PPh 21</td>
                                         <td class="text-end fs-4 text-danger fw-bold py-2" id="summary-total-pph21">Rp 0</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-semibold fs-5 text-secondary py-2">Total Reimbursement</td>
+                                        <td class="text-end fs-4 text-info fw-bold py-2" id="summary-reimbursement">Rp 0</td>
                                     </tr>
                                     <tr class="border-top border-2 border-primary border-opacity-25">
                                         <td class="fw-bold fs-3 text-body pt-3">Net Salary</td>
@@ -1295,7 +1303,7 @@
                     const v = (id) => parseRupiah(document.getElementById(id).value);
                     const fmt = (n) => 'Rp ' + Math.round(n).toLocaleString('id-ID');
 
-                    const earningsFields = ['salary', 'transport_allowance', 'meal_allowance', 'position_allowance', 'overtime_amount', 'performance_bonus', 'attendance_bonus', 'other_bonus', 'reimbursement'];
+                    const earningsFields = ['salary', 'transport_allowance', 'meal_allowance', 'position_allowance', 'overtime_amount', 'performance_bonus', 'attendance_bonus', 'other_bonus'];
                     const deductionsFields = ['late_deduction', 'absent_deduction', 'penalty_amount', 'bpjs_kes', 'bpjs_tk', 'pph21', 'other_deduction'];
 
                     let totalEarnings = 0;
@@ -1308,6 +1316,12 @@
                             el.closest('tr').style.display = val === 0 ? 'none' : '';
                         }
                     });
+
+                    let reimbursementAmount = v('reimbursement');
+                    let elReimb = document.getElementById('summary-reimbursement');
+                    if (elReimb) {
+                        elReimb.textContent = fmt(reimbursementAmount);
+                    }
 
                     let totalDeductionsExceptPph = 0;
                     deductionsFields.forEach(f => {
@@ -1351,7 +1365,7 @@
                     }
 
                     const totalDeductions = totalDeductionsExceptPph + pph21Amount;
-                    const net = totalEarnings - totalDeductions;
+                    const net = totalEarnings + reimbursementAmount - totalDeductions;
 
                     const computedTotalSalary = v('salary') + v('transport_allowance') + v('meal_allowance') + v('position_allowance');
                     const totalSalaryInput = document.getElementById('total_salary');
