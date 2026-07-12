@@ -1209,7 +1209,7 @@
                                 document.getElementById('breakdown_absent_wfo').innerText = (d.absent_wfo_deficit || 0) + ' Days';
                                 document.getElementById('breakdown_absent_total').innerText = (d.absent_count || 0) + ' Days';
 
-                                window.currentPph21Rate = d.pph21_rate || 0.5;
+                                window.currentPph21Rate = d.pph21_rate ?? 0.5;
 
                                 document.getElementById('late_count').value = d.late_count;
                                 document.getElementById('late_deduction').value = formatRibuan(d.late_deduction);
@@ -1344,7 +1344,7 @@
                     
                     if (netBeforePph >= 4500000) {
                         if (!missedTargetEl || !missedTargetEl.checked) {
-                            const pphRate = window.currentPph21Rate || 0.5;
+                            const pphRate = window.currentPph21Rate ?? 0.5;
                             pph21Amount = netBeforePph * (pphRate / 100);
                         } else {
                             pphZeroReason = 'Waived';
