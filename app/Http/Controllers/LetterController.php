@@ -474,7 +474,7 @@ class LetterController extends Controller
         // first render (silently) to count physical pages
         $html = view('letters.pdf', compact('letter', 'config'))->render();
         $localPath = str_replace('\\', '/', storage_path('app/public/tinymce_uploads'));
-        $html = preg_replace('/src=".*?tinymce_uploads\/([^"]+)"/', 'src="' . $localPath . '/$1"', $html);
+        $html = preg_replace('/src="[^"]*?tinymce_uploads\/([^"]+)"/', 'src="' . $localPath . '/$1"', $html);
         
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'portrait');
         $pdf->render();
@@ -499,7 +499,7 @@ class LetterController extends Controller
         // overwrite placeholder with final attachment text
         $finalHtml = str_replace('{TOTAL_PAGES_PLACEHOLDER}', $lampiranText, $html);
         $localPath = str_replace('\\', '/', storage_path('app/public/tinymce_uploads'));
-        $finalHtml = preg_replace('/src=".*?tinymce_uploads\/([^"]+)"/', 'src="' . $localPath . '/$1"', $finalHtml);
+        $finalHtml = preg_replace('/src="[^"]*?tinymce_uploads\/([^"]+)"/', 'src="' . $localPath . '/$1"', $finalHtml);
 
         // second render (final) to get the final PDF output
         $pdfFinal = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($finalHtml)->setPaper('a4', 'portrait');
