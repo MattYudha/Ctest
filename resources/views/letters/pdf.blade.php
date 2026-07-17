@@ -146,6 +146,11 @@
             font-family: 'Helvetica', 'Arial', sans-serif !important;
         }
 
+        .content img {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+
         /* ======================================================== */
         /* footer */
         /* ======================================================== */

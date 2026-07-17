@@ -29,6 +29,7 @@ use App\Http\Controllers\LetterConfigurationController;
 use App\Http\Controllers\LetterArchiveController;
 use App\Http\Controllers\SignatureController;
 use App\Http\Controllers\KPIController;
+use App\Http\Controllers\KPIMasterController;
 use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\MyProfileController;
 use App\Http\Controllers\KnowledgeBaseController;
@@ -52,11 +53,13 @@ Route::get('/', function () {
         return redirect()->route('dashboard');
     }
 
-    // redirect guest user to login page
+// redirect guest user to login page
     return redirect()->route('login');
 });
 
 Route::middleware(['auth'])->group(function () {
+    // TinyMCE Image Upload
+    Route::post('/upload-image', [\App\Http\Controllers\ImageUploadController::class, 'upload'])->name('upload.image');
     // Profile routes
     Route::get('/my-profile', [MyProfileController::class, 'index'])->name('my-profile');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -404,6 +407,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/signatures/my-requests', [SignatureController::class, 'mySignatures'])->name('signatures.my');
 
     // KPI and Reporting routes
+    // Route::get('kpi/team', [KPIController::class, 'team'])
+    //     ->name('kpi.team')
+    //     ->middleware(['role:Manager / Unit Head,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+    // Route::get('kpi/department', [KPIController::class, 'department'])
+    //     ->name('kpi.department')
+    //     ->middleware(['role:Manager / Unit Head,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::get('kpi/dashboard', [KPIController::class, 'dashboard'])->name('kpi.dashboard');
     Route::post('kpi/store', [KPIController::class, 'store'])
         ->name('kpi.store')
@@ -416,6 +425,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('kpi/department', [KPIController::class, 'department'])
         ->name('kpi.department')
         ->middleware(['role:Manager / Unit Head,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+    Route::get('kpi/company', [KPIController::class, 'companyDashboard'])
+        ->name('kpi.company')
+        ->middleware(['role:Administrator,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::post('kpi/recalculate/{id}', [KPIController::class, 'recalculate'])
         ->name('kpi.recalculate')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN, 'throttle:300,1']);
@@ -442,7 +454,22 @@ Route::middleware(['auth'])->group(function () {
         ->name('kpi.admin-update')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
 
+    // Master KPI Management
+    Route::get('kpi/{employee}/records/{record}/evaluate', [KPIController::class, 'evaluateQuality'])
+        ->name('kpi.evaluate-quality')
+        ->middleware(['role:Manager / Unit Head,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+    Route::post('kpi/{employee}/records/{record}/evaluate', [KPIController::class, 'storeQualityEvaluation'])
+        ->name('kpi.store-evaluate-quality')
+        ->middleware(['role:Manager / Unit Head,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+
+    Route::post('kpi-masters/reset', [KPIMasterController::class, 'reset'])->name('kpi-masters.reset');
+    Route::post('kpi-masters/publish', [KPIMasterController::class, 'publish'])->name('kpi-masters.publish');
+    Route::resource('kpi-masters', KPIMasterController::class)
+        ->except(['show'])
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+
     Route::get('reports/monthly-recap', [ReportingController::class, 'monthlyRecap'])->name('reports.monthly-recap');
+    Route::post('reports/monthly-recap/sync', [ReportingController::class, 'syncMetrics'])->name('reports.monthly-recap.sync');
     Route::get('reports/executive', [ReportingController::class, 'executiveDashboard'])
         ->name('reports.executive')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
@@ -548,5 +575,10 @@ Route::post('/signatures/public/{token}/verify-otp', [SignatureController::class
 // })->middleware(['auth', 'verified'])->name('dashboard');
 
 require __DIR__ . '/auth.php';
+
+Route::get('/seed-kpi', function () {
+    \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'MockKPISeeder', '--force' => true]);
+    return 'Seeded!';
+});
 require __DIR__ . '/web_finance.php';
 require __DIR__ . '/web_crm.php';

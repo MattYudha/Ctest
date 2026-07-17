@@ -380,7 +380,7 @@ class PresencesController extends Controller
                 return redirect()->back()->with('error', 'Invalid session. Please log in again.');
             }
 
-            $today = Carbon::today();
+            $today = Carbon::today(env('APP_TIMEZONE', 'Asia/Jakarta'));
             $existingPresence = Presence::where('employee_id', $employeeId)
                 ->whereDate('date', $today)
                 ->whereNotNull('check_in')
@@ -394,9 +394,9 @@ class PresencesController extends Controller
                 }
             }
 
-            $checkInTime = Carbon::now();
+            $checkInTime = Carbon::now(env('APP_TIMEZONE', 'Asia/Jakarta'));
             $workStartTimeStr = Setting::getValue('work_start_time', '08:00');
-            $workStartTime = Carbon::parse(date('Y-m-d') . ' ' . $workStartTimeStr);
+            $workStartTime = Carbon::parse(date('Y-m-d') . ' ' . $workStartTimeStr, env('APP_TIMEZONE', 'Asia/Jakarta'));
             $lateThreshold = (int) Setting::getValue('late_threshold_minutes', 15);
 
             try {
@@ -690,7 +690,7 @@ class PresencesController extends Controller
         $employee = $employeeId ? Employee::with('officeLocation')->find($employeeId) : null;
 
         // find today's presence record with check-in but no check-out
-        $today = Carbon::today();
+        $today = Carbon::today(env('APP_TIMEZONE', 'Asia/Jakarta'));
         $presence = Presence::with('officeLocation')
             ->where('employee_id', $employeeId)
             ->whereDate('date', $today)
@@ -712,8 +712,8 @@ class PresencesController extends Controller
                 : $this->defaultOfficeLocationConfig();
 
         // validate check-out cannot be before check-in
-        $checkInTime = Carbon::parse($presence->check_in);
-        $checkOutTime = Carbon::now();
+        $checkInTime = Carbon::parse($presence->check_in, env('APP_TIMEZONE', 'Asia/Jakarta'));
+        $checkOutTime = Carbon::now(env('APP_TIMEZONE', 'Asia/Jakarta'));
 
         if ($checkOutTime->lt($checkInTime)) {
             return redirect()
@@ -1005,12 +1005,12 @@ class PresencesController extends Controller
                 return false;
             }
 
-            $checkInTime = Carbon::parse($presence->check_in);
+            $checkInTime = Carbon::parse($presence->check_in, env('APP_TIMEZONE', 'Asia/Jakarta'));
             $dateStr =
                 $presence->date instanceof \DateTime ? $presence->date->format('Y-m-d') : (string) $presence->date;
 
             $workStartTimeStr = Setting::getValue('work_start_time', '08:00');
-            $workStartTime = Carbon::parse($dateStr . ' ' . $workStartTimeStr);
+            $workStartTime = Carbon::parse($dateStr . ' ' . $workStartTimeStr, env('APP_TIMEZONE', 'Asia/Jakarta'));
 
             // get specific minute tolerance according to the work type
             $lateThreshold = (int) Setting::getValue('late_threshold_' . $workType, 15);

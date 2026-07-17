@@ -273,6 +273,27 @@
                 menubar: 'file edit view insert format tools table help',
                 skin: isDarkMode ? 'oxide-dark' : 'oxide',
                 content_css: isDarkMode ? 'dark' : 'default',
+                paste_data_images: true,
+                automatic_uploads: true,
+                images_upload_handler: function (blobInfo, progress) {
+                    return new Promise((resolve, reject) => {
+                        let xhr = new XMLHttpRequest();
+                        xhr.open('POST', '{{ route('upload.image') }}');
+                        xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+                        xhr.upload.onprogress = (e) => { progress(e.loaded / e.total * 100); };
+                        xhr.onload = () => {
+                            if (xhr.status === 403) { reject({ message: 'HTTP Error: ' + xhr.status, remove: true }); return; }
+                            if (xhr.status < 200 || xhr.status >= 300) { reject('HTTP Error: ' + xhr.status); return; }
+                            let json = JSON.parse(xhr.responseText);
+                            if (!json || typeof json.location != 'string') { reject('Invalid JSON: ' + xhr.responseText); return; }
+                            resolve(json.location);
+                        };
+                        xhr.onerror = () => { reject('Image upload failed due to a XHR Transport error. Code: ' + xhr.status); };
+                        let formData = new FormData();
+                        formData.append('file', blobInfo.blob(), blobInfo.filename());
+                        xhr.send(formData);
+                    });
+                },
                 content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
                 table_use_colgroups: false
             });
