@@ -11,7 +11,7 @@
         $html = view('letters.pdf', compact('letter', 'config'))->render();
         // Fix DOMPDF deadlock on Windows artisan serve by replacing HTTP URLs with local file paths (with forward slashes for DOMPDF)
         $localPath = str_replace('\\', '/', storage_path('app/public/tinymce_uploads'));
-        $html = preg_replace('/src="[^"]*?tinymce_uploads\/([^"]+)"/', 'src="' . $localPath . '/$1"', $html);
+        $html = preg_replace('/src="(https?:\/\/[^\/]+|(?:\.\.\/)+|\/)?(storage|media)\/tinymce_uploads\//', 'src="' . $localPath . '/', $html);
         
         // Render PDF once to count pages
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'portrait');
