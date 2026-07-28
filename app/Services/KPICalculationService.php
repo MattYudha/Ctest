@@ -200,6 +200,29 @@ class KPICalculationService
     }
 
     /**
+     * Calculate 2-metric KPI (Checkout Compliance & Work Log %) for an employee
+     */
+    public static function calculateDualMetricsForEmployee(Employee $employee, $period = null)
+    {
+        $service = new self($employee, $period);
+        $checkoutMetrics = $service->calculateCheckoutMetrics();
+        $logMetrics = $service->calculateLogMetrics();
+
+        $checkoutPct = $checkoutMetrics['checkout_compliance'] ?? 0;
+        $logPct = $logMetrics['log_percentage'] ?? 0;
+
+        $compositeScore = round(max(0, min(100, ($checkoutPct + $logPct) / 2)), 2);
+        $level = self::getPerformanceLevel($compositeScore);
+
+        return [
+            'checkout_pct' => $checkoutPct,
+            'log_pct' => $logPct,
+            'score' => $compositeScore,
+            'level' => $level,
+        ];
+    }
+
+    /**
      * Get performance level label based on achievement
      */
     public static function getPerformanceLevel($achievement)
@@ -251,3 +274,4 @@ class KPICalculationService
         ];
     }
 }
+

@@ -102,7 +102,7 @@
                                 </div>
                             @endif
 
-                            <form action="{{ route('employees.update', $employee->id) }}" method="POST">
+                            <form action="{{ route('employees.update', $employee->id) }}" method="POST" enctype="multipart/form-data" novalidate>
                                 @csrf
                                 @method ('PUT')
 
@@ -161,7 +161,21 @@
                                             aria-controls="finance"
                                             aria-selected="false"
                                         >
-                                            <i class="bi bi-credit-card me-1"></i> Finance & Docs
+                                            <i class="bi bi-wallet2 me-1"></i> Finance
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button
+                                            class="nav-link"
+                                            id="documents-tab"
+                                            data-bs-toggle="tab"
+                                            data-bs-target="#documents"
+                                            type="button"
+                                            role="tab"
+                                            aria-controls="documents"
+                                            aria-selected="false"
+                                        >
+                                            <i class="bi bi-file-earmark-text me-1"></i> Documents
                                         </button>
                                     </li>
                                     @if (\App\Constants\Roles::isAdmin(session('role')) && $userAccount)
@@ -182,14 +196,32 @@
                                     @endif
                                 </ul>
 
-                                <div class="tab-content border-0 p-0" id="employeeEditTabContent">
-                                    <!-- General Tab -->
+                                <!-- Tab Content -->
+                                <div class="tab-content" id="employeeEditTabContent">
+                                    <!-- General Information -->
                                     <div
                                         class="tab-pane fade show active"
                                         id="general"
                                         role="tabpanel"
                                         aria-labelledby="general-tab"
                                     >
+                                        <div class="mb-4 text-center p-3 rounded bg-light">
+                                            <div class="position-relative d-inline-block">
+                                                @if ($employee->profile_photo)
+                                                    <img src="{{ asset('storage/' . $employee->profile_photo) }}" alt="Profile Photo" class="rounded-circle shadow-sm" style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #435ebe;" id="photoPreview">
+                                                @else
+                                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 120px; height: 120px; font-size: 40px; font-weight: bold; border: 3px solid #435ebe;" id="photoPreview">
+                                                        {{ Str::upper(substr($employee->fullname, 0, 2)) }}
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            <div class="mt-3 col-md-6 mx-auto">
+                                                <label class="form-label fw-bold">Foto Profil (Profile Photo)</label>
+                                                <input type="file" name="profile_photo" class="form-control" accept="image/*">
+                                                <small class="text-muted">Format yang didukung: JPG, PNG, WEBP</small>
+                                            </div>
+                                        </div>
+
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="row">
@@ -1286,19 +1318,22 @@
 
                                 <hr class="mt-4" />
 
-                                <div class="d-flex justify-content-between mt-4">
-                                    <a href="{{ route('employees.index') }}" class="btn btn-outline-secondary px-4">
-                                        <i class="bi bi-arrow-left me-2"></i> Back
-                                    </a>
+                                <div class="d-flex justify-content-between align-items-center mt-4">
                                     @if ($isAdmin)
+                                        <a href="{{ route('employees.index') }}" class="btn btn-outline-secondary px-4">
+                                            <i class="bi bi-arrow-left me-2"></i> Kembali
+                                        </a>
                                         <button type="submit" class="btn btn-primary px-4">
                                             <i class="bi bi-save me-2"></i> Update Data
                                         </button>
                                     @else
+                                        <a href="{{ route('my-profile') }}" class="btn btn-outline-secondary px-4">
+                                            <i class="bi bi-arrow-left me-2"></i> Kembali ke Profile
+                                        </a>
                                         <div class="text-end">
-                                            <p class="text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Perubahan Anda akan diajukan ke HR Administrator untuk disetujui.</p>
-                                            <button type="submit" class="btn btn-warning px-4">
-                                                <i class="bi bi-send me-2"></i> Submit for Approval
+                                            <p class="text-muted small mb-2"><i class="bi bi-info-circle me-1"></i> Foto profil &amp; data kontak langsung disimpan. Perubahan data sensitif akan diajukan ke HR.</p>
+                                            <button type="submit" class="btn btn-warning fw-bold px-4 shadow-sm">
+                                                <i class="bi bi-check-circle me-2"></i> Simpan Perubahan
                                             </button>
                                         </div>
                                     @endif

@@ -248,7 +248,12 @@ class EmployeeController extends Controller
     public function edit($id)
     {
         $employee = Employee::findOrFail($id);
-        $this->authorize('update', $employee);
+        $user = auth()->user();
+        $isAdmin = $user->isAdmin();
+
+        if (!$isAdmin && ($user->employee_id != $id)) {
+            return redirect()->route('my-profile')->with('error', 'Anda hanya memiliki akses untuk mengedit profil Anda sendiri.');
+        }
 
         $departments = Department::all();
         $roles = Role::all();
@@ -295,21 +300,21 @@ class EmployeeController extends Controller
         // If non-admin, ensure hidden/readonly fields are populated with current data to pass validation
         if (!$isAdmin) {
             $request->merge([
-                'salary' => $employee->salary,
-                'basic_salary' => $employee->basic_salary,
-                'meal_allowance' => $employee->meal_allowance,
-                'transport_allowance' => $employee->transport_allowance,
-                'position_allowance' => $employee->position_allowance,
+                'salary' => $employee->salary ?? 0,
+                'basic_salary' => $employee->basic_salary ?? 0,
+                'meal_allowance' => $employee->meal_allowance ?? 0,
+                'transport_allowance' => $employee->transport_allowance ?? 0,
+                'position_allowance' => $employee->position_allowance ?? 0,
                 'department_id' => $employee->department_id,
                 'office_location_id' => $employee->office_location_id,
                 'position_id' => $employee->active_position?->id,
                 'role_id' => $employee->role_id,
-                'status' => $employee->status,
-                'employee_status' => $employee->employee_status,
-                'working_type' => $employee->working_type,
-                'pph21_rate' => $employee->pph21_rate,
-                'npwp' => $employee->npwp,
-                'hire_date' => $employee->hire_date ? $employee->hire_date->format('Y-m-d') : null,
+                'status' => $employee->status ?? 'active',
+                'employee_status' => $employee->employee_status ?? 'permanent',
+                'working_type' => $employee->working_type ?? 'full_time',
+                'pph21_rate' => $employee->pph21_rate ?? 0,
+                'npwp' => $employee->npwp ?? '00.000.000.0-000.000',
+                'hire_date' => $employee->hire_date ? $employee->hire_date->format('Y-m-d') : now()->format('Y-m-d'),
             ]);
         }
 
@@ -324,10 +329,10 @@ class EmployeeController extends Controller
             'birth_date' => 'required|date',
             'hire_date' => 'required|date',
             'department_id' => 'required|exists:departments,id',
-            'office_location_id' => 'required|exists:office_locations,id',
+            'office_location_id' => $isAdmin ? 'required|exists:office_locations,id' : 'nullable|exists:office_locations,id',
             'role_id' => 'required|exists:roles,id',
             'supervisor_id' => 'nullable|exists:employees,id',
-            'position_id' => 'required|exists:positions,position_id',
+            'position_id' => $isAdmin ? 'required|exists:positions,position_id' : 'nullable|exists:positions,position_id',
             'status' => 'required|string|max:50',
             'employee_status' => 'required|string|in:permanent,contract,probation,internship',
             'working_type' => 'required|string|in:full_time,part_time',
@@ -383,17 +388,73 @@ class EmployeeController extends Controller
             unset($data['education_level_id']);
         }
 
-        // Admins and Manager / Unit Heads apply changes directly
-        if ($isAdmin || $user->canManage($employee)) {
+        if ($request->hasFile('profile_photo')) {
+            $file = $request->file('profile_photo');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('profile_photos', $filename, 'public');
+            $data['profile_photo'] = $path;
+        } else {
+            unset($data['profile_photo']);
+        }
+
+        $approvalNotice = false;
+
+        // Admins apply changes directly
+        if ($isAdmin) {
             $employee->update($data);
 
             // Update password if provided by Admin
-            if ($isAdmin && $request->filled('password')) {
-                if ($employee->user) {
+            if ($request->filled('password') && $employee->user) {
+                $employee->user->update([
+                    'password' => Hash::make($request->password),
+                ]);
+            }
+        } else {
+            // Non-admin updating self profile
+            // Save personal data (fullname, photo, phone, address, place_of_birth, birth_date, etc.) directly
+            $sensitiveFields = ['nik', 'npwp', 'email'];
+            $nonSensitiveData = collect($data)->except(array_merge($sensitiveFields, [
+                'supervisor_id', 'salary', 'basic_salary', 'meal_allowance', 'transport_allowance',
+                'position_allowance', 'department_id', 'office_location_id', 'position_id', 'role_id',
+                'status', 'employee_status', 'working_type', 'pph21_rate', 'hire_date'
+            ]))->toArray();
+
+            if (!empty($nonSensitiveData)) {
+                $employee->update($nonSensitiveData);
+
+                // If fullname updated, also update linked User name
+                if ($request->filled('fullname') && $employee->user) {
                     $employee->user->update([
-                        'password' => Hash::make($request->password),
+                        'name' => $request->fullname
                     ]);
                 }
+            }
+
+            // Check if sensitive identifier fields (NIK, NPWP, Email) were modified
+            $sensitiveChanges = [];
+            $sensitiveOldData = [];
+
+            foreach ($sensitiveFields as $field) {
+                if ($request->has($field)) {
+                    $newVal = (string) $request->input($field);
+                    $oldVal = (string) $employee->$field;
+
+                    if (filled($newVal) && $newVal !== $oldVal) {
+                        $sensitiveChanges[$field] = $newVal;
+                        $sensitiveOldData[$field] = $oldVal;
+                    }
+                }
+            }
+
+            if (!empty($sensitiveChanges)) {
+                \App\Models\EmployeeUpdateApproval::create([
+                    'employee_id' => $employee->id,
+                    'requested_by' => auth()->id(),
+                    'old_data' => $sensitiveOldData,
+                    'new_data' => $sensitiveChanges,
+                    'status' => 'pending',
+                ]);
+                $approvalNotice = true;
             }
         }
 
@@ -534,50 +595,13 @@ class EmployeeController extends Controller
             }
         }
 
-        if ($isAdmin || $user->canManage($employee)) {
+        if ($isAdmin) {
             return redirect()->route('employees.index')->with('success', 'Employee updated successfully.');
         } else {
-            // For regular employees editing themselves, submit for approval
-            // Exclude non-editable or sensitive fields for submission
-            $editableFields = [
-                'fullname',
-                'email',
-                'phone_number',
-                'address',
-                'place_of_birth',
-                'birth_date',
-                'gender',
-                'religion',
-                'marital_status',
-                'education_level_id',
-            ];
-
-            $submissionData = collect($data)->only($editableFields)->toArray();
-            $oldDataSubmit = [];
-            $changes = [];
-
-            foreach ($submissionData as $key => $value) {
-                if ($employee->$key != $value) {
-                    $oldDataSubmit[$key] = $employee->$key;
-                    $changes[$key] = $value;
-                }
+            if ($approvalNotice) {
+                return redirect()->route('my-profile')->with('success', 'Foto profil & data diri berhasil diperbarui. Perubahan data sensitif (NIK/Nama/Email) telah diajukan ke HR Administrator untuk persetujuan.');
             }
-
-            if (empty($changes)) {
-                return redirect()->route('my-profile')->with('success', 'Profile updated successfully.');
-            }
-
-            \App\Models\EmployeeUpdateApproval::create([
-                'employee_id' => $employee->id,
-                'requested_by' => auth()->id(),
-                'old_data' => $oldDataSubmit,
-                'new_data' => $changes,
-                'status' => 'pending',
-            ]);
-
-            return redirect()
-                ->route('my-profile')
-                ->with('success', 'Your update request has been submitted for approval.');
+            return redirect()->route('my-profile')->with('success', 'Profil & Foto Profil berhasil diperbarui.');
         }
     }
 

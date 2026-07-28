@@ -240,6 +240,29 @@ class DashboardController extends Controller
             $myLetterCount = Letter::where('user_id', $user->id)->count();
         }
 
+        /* ================= EMPLOYEE OF THE MONTH ================= */
+        $allEmp = Employee::all();
+        $periodNow = now()->format('Y-m');
+        $employeeOfTheMonth = null;
+        $topScore = -1;
+
+        foreach ($allEmp as $empItem) {
+            $dual = \App\Services\KPICalculationService::calculateDualMetricsForEmployee($empItem, $periodNow);
+            if ($dual['score'] > $topScore) {
+                $topScore = $dual['score'];
+                $employeeOfTheMonth = [
+                    'employee' => $empItem,
+                    'fullname' => $empItem->fullname,
+                    'department' => $empItem->department->name ?? 'General',
+                    'position' => $empItem->position->name ?? ($empItem->role->title ?? 'Staff'),
+                    'composite_score' => $dual['score'],
+                    'performance_level' => $dual['level'],
+                    'photo' => $empItem->profile_photo ?? null,
+                    'period_label' => now()->format('F Y'),
+                ];
+            }
+        }
+
         return view('dashboard.index', compact(
             'departmentCount',
             'employeeCount',
@@ -258,7 +281,8 @@ class DashboardController extends Controller
             'myLetterCount',
             'pendingTaskCount',
             'statusLabels',
-            'statusData'
+            'statusData',
+            'employeeOfTheMonth'
         ));
     }
 

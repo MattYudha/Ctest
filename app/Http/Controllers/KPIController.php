@@ -156,25 +156,101 @@ class KPIController extends Controller
         }
 
         $period = request('period', now()->format('Y-m'));
-        $teamMembers = Employee::where('supervisor_id', $employee->id)->get();
+        $roleTitle = $user->employee?->role->title ?? null;
+        $isGenerated = EmployeeKPIRecord::where('period', $period)->exists();
+        $canGenerate = in_array($roleTitle, ['HR Administrator', \App\Constants\Roles::MASTER_ADMIN]);
+
+        $supervisorIds = Employee::whereNotNull('supervisor_id')->pluck('supervisor_id')->unique();
+        $supervisors = Employee::whereIn('id', $supervisorIds)->get();
+
+        $selectedSupervisorId = request('supervisor_id', ($canGenerate ? 'all' : $employee->id));
+
+        if ($selectedSupervisorId && $selectedSupervisorId !== 'all') {
+            $teamMembers = Employee::where('supervisor_id', $selectedSupervisorId)->get();
+            $selectedSupervisor = Employee::find($selectedSupervisorId);
+        } else {
+            $teamMembers = Employee::all();
+            $selectedSupervisor = null;
+        }
 
         $teamKPIs = $teamMembers->map(function($member) use ($period) {
-            $records = EmployeeKPIRecord::with('kpi')
-                ->where('employee_id', $member->id)
-                ->where('period', $period)
-                ->get();
-            
-            $proxyRecords = $records->map(function($r) { return new KPIRecordProxy($r, $r->kpi); });
-            $summary = KPICalculationService::calculateWeightedScore($proxyRecords);
-
+            $dual = KPICalculationService::calculateDualMetricsForEmployee($member, $period);
             return [
                 'employee' => $member,
-                'composite_score' => $summary['score'],
-                'performance_level' => $summary['level'],
+                'working_days' => $dual['working_days'] ?? 20,
+                'log_count' => $dual['unique_log_days'] ?? 0,
+                'checkout_percentage' => $dual['checkout_pct'],
+                'log_percentage' => $dual['log_pct'],
+                'composite_score' => $dual['score'],
+                'performance_level' => $dual['level'],
             ];
         })->sortByDesc('composite_score');
 
-        return view('kpi.team', compact('teamMembers', 'teamKPIs', 'period'));
+        $allEmployees = Employee::all();
+
+        return view('kpi.team', compact(
+            'teamMembers', 'teamKPIs', 'period', 'isGenerated', 'canGenerate',
+            'supervisors', 'selectedSupervisorId', 'selectedSupervisor', 'allEmployees'
+        ));
+    }
+
+    /**
+     * Assign team members under a supervisor
+     */
+    public function assignTeam(Request $request)
+    {
+        $user = Auth::user();
+        $roleTitle = $user->employee?->role->title ?? null;
+        if (!in_array($roleTitle, ['HR Administrator', \App\Constants\Roles::MASTER_ADMIN])) {
+            abort(403, 'Hanya HR Administrator atau Master Admin yang dapat mengelola tim.');
+        }
+
+        $request->validate([
+            'supervisor_id' => 'required|exists:employees,id',
+            'member_ids' => 'nullable|array',
+            'member_ids.*' => 'exists:employees,id',
+        ]);
+
+        $supervisorId = $request->input('supervisor_id');
+        $memberIds = $request->input('member_ids', []);
+
+        // Remove supervisor_id for previous members of this supervisor who were unselected
+        Employee::where('supervisor_id', $supervisorId)
+            ->whereNotIn('id', $memberIds)
+            ->update(['supervisor_id' => null]);
+
+        // Assign selected members to this supervisor (excluding supervisor themselves)
+        if (!empty($memberIds)) {
+            Employee::whereIn('id', array_diff($memberIds, [$supervisorId]))
+                ->update(['supervisor_id' => $supervisorId]);
+        }
+
+        $period = $request->input('period', now()->format('Y-m'));
+
+        return redirect()->route('kpi.team', ['period' => $period, 'supervisor_id' => $supervisorId])
+            ->with('success', 'Formasi tim berhasil diperbarui!');
+    }
+
+    /**
+     * Delete / dissolve a team by clearing supervisor_id for all subordinates
+     */
+    public function deleteTeam(Request $request, $supervisorId)
+    {
+        $user = Auth::user();
+        $roleTitle = $user->employee?->role->title ?? null;
+        if (!in_array($roleTitle, ['HR Administrator', \App\Constants\Roles::MASTER_ADMIN])) {
+            abort(403, 'Hanya HR Administrator atau Master Admin yang dapat membubarkan tim.');
+        }
+
+        $supervisor = Employee::findOrFail($supervisorId);
+
+        // Reset supervisor_id to null for all members of this supervisor
+        Employee::where('supervisor_id', $supervisorId)->update(['supervisor_id' => null]);
+
+        $period = $request->input('period', now()->format('Y-m'));
+
+        return redirect()->route('kpi.team', ['period' => $period, 'supervisor_id' => 'all'])
+            ->with('success', "Tim {$supervisor->fullname} berhasil dibubarkan!");
     }
 
     /**
@@ -190,27 +266,123 @@ class KPIController extends Controller
         }
 
         $period = request('period', now()->format('Y-m'));
-        $deptEmployees = Employee::where('department_id', $employee->department_id)->get();
+        $roleTitle = $user->employee?->role->title ?? null;
+        $isGenerated = EmployeeKPIRecord::where('period', $period)->exists();
+        $canGenerate = in_array($roleTitle, ['HR Administrator', \App\Constants\Roles::MASTER_ADMIN]);
+
+        $departments = \App\Models\Department::all();
+        $defaultDeptId = $canGenerate ? 'all' : ($employee->department_id ?? 'all');
+        $selectedDeptId = request('department_id', $defaultDeptId);
+
+        if ($selectedDeptId && $selectedDeptId !== 'all') {
+            $deptEmployees = Employee::where('department_id', $selectedDeptId)->get();
+            $selectedDepartment = \App\Models\Department::find($selectedDeptId);
+        } else {
+            $deptEmployees = Employee::all();
+            $selectedDepartment = null;
+        }
 
         $deptKPIs = $deptEmployees->map(function($emp) use ($period) {
-            $records = EmployeeKPIRecord::with('kpi')
-                ->where('employee_id', $emp->id)
-                ->where('period', $period)
-                ->get();
-            
-            $proxyRecords = $records->map(function($r) { return new KPIRecordProxy($r, $r->kpi); });
-            $summary = KPICalculationService::calculateWeightedScore($proxyRecords);
-
+            $dual = KPICalculationService::calculateDualMetricsForEmployee($emp, $period);
             return [
                 'employee' => $emp,
-                'composite_score' => $summary['score'],
-                'performance_level' => $summary['level'],
+                'working_days' => $dual['working_days'] ?? 20,
+                'log_count' => $dual['unique_log_days'] ?? 0,
+                'checkout_percentage' => $dual['checkout_pct'],
+                'log_percentage' => $dual['log_pct'],
+                'composite_score' => $dual['score'],
+                'performance_level' => $dual['level'],
             ];
         })->sortByDesc('composite_score');
 
-        $avgScore = $deptKPIs->avg('composite_score');
+        $avgScore = $deptKPIs->avg('composite_score') ?? 0;
 
-        return view('kpi.department', compact('deptEmployees', 'deptKPIs', 'avgScore', 'period'));
+        $allEmployees = Employee::all();
+
+        return view('kpi.department', compact(
+            'deptEmployees', 'deptKPIs', 'avgScore', 'period', 'isGenerated', 'canGenerate',
+            'departments', 'selectedDeptId', 'selectedDepartment', 'allEmployees'
+        ));
+    }
+
+    /**
+     * Assign / create a department and its members
+     */
+    public function assignDepartment(Request $request)
+    {
+        $user = Auth::user();
+        $roleTitle = $user->employee?->role->title ?? null;
+        if (!in_array($roleTitle, ['HR Administrator', \App\Constants\Roles::MASTER_ADMIN])) {
+            abort(403, 'Hanya HR Administrator atau Master Admin yang dapat mengelola departemen.');
+        }
+
+        $request->validate([
+            'department_id' => 'nullable|string',
+            'new_department_name' => 'nullable|string|max:100',
+            'member_ids' => 'nullable|array',
+            'member_ids.*' => 'exists:employees,id',
+        ]);
+
+        $deptId = $request->input('department_id');
+        $newDeptName = trim($request->input('new_department_name', ''));
+
+        if (!empty($newDeptName)) {
+            $dept = \App\Models\Department::firstOrCreate(
+                ['name' => $newDeptName],
+                [
+                    'status' => 'Active',
+                    'description' => 'Departemen ' . $newDeptName
+                ]
+            );
+            $deptId = $dept->id;
+        }
+
+        if (empty($deptId) || $deptId === 'all') {
+            return redirect()->back()->with('error', 'Silakan pilih atau masukkan nama departemen.');
+        }
+
+        $memberIds = $request->input('member_ids', []);
+
+        // Unassign previous members of this department who were not checked
+        Employee::where('department_id', $deptId)
+            ->whereNotIn('id', $memberIds)
+            ->update(['department_id' => null]);
+
+        // Assign checked members to this department
+        if (!empty($memberIds)) {
+            Employee::whereIn('id', $memberIds)->update(['department_id' => $deptId]);
+        }
+
+        $period = $request->input('period', now()->format('Y-m'));
+
+        return redirect()->route('kpi.department', ['period' => $period, 'department_id' => $deptId])
+            ->with('success', 'Formasi departemen berhasil diperbarui!');
+    }
+
+    /**
+     * Delete / dissolve a department
+     */
+    public function deleteDepartment(Request $request, $departmentId)
+    {
+        $user = Auth::user();
+        $roleTitle = $user->employee?->role->title ?? null;
+        if (!in_array($roleTitle, ['HR Administrator', \App\Constants\Roles::MASTER_ADMIN])) {
+            abort(403, 'Hanya HR Administrator atau Master Admin yang dapat menghapus departemen.');
+        }
+
+        $department = \App\Models\Department::findOrFail($departmentId);
+
+        // Reset department_id to null for all members of this department
+        Employee::where('department_id', $departmentId)->update(['department_id' => null]);
+
+        // Delete the department record
+        $departmentName = $department->name;
+        $department->delete();
+
+        $period = $request->input('period', now()->format('Y-m'));
+
+        return redirect()->route('kpi.department', ['period' => $period, 'department_id' => 'all'])
+            ->with('success', "Departemen {$departmentName} berhasil dihapus!");
     }
 
     /**
@@ -304,20 +476,54 @@ class KPIController extends Controller
      */
     public function companyDashboard()
     {
-        $cacheData = \Illuminate\Support\Facades\Cache::get('company_kpi_dashboard_data', null);
-        
-        $lastUpdated = $cacheData['last_updated'] ?? null;
-        $nextUpdate = $cacheData['next_update'] ?? null;
-        $kpiData = $cacheData['data'] ?? [];
-        
-        $bestEmployee = null;
-        if (!empty($kpiData)) {
-            $bestEmployee = $kpiData[0]; // since it's sorted by composite_score desc
-        }
-        
-        $period = \Carbon\Carbon::now()->format('F Y');
+        $user = Auth::user();
+        $roleTitle = $user->employee?->role->title ?? null;
+        $period = request('period', now()->format('Y-m'));
 
-        return view('kpi.company', compact('kpiData', 'lastUpdated', 'nextUpdate', 'bestEmployee', 'period'));
+        $isGenerated = EmployeeKPIRecord::where('period', $period)->exists();
+        $canGenerate = in_array($roleTitle, ['HR Administrator', \App\Constants\Roles::MASTER_ADMIN]);
+
+        // Always query fresh from DB so employee names/photos are never stale
+        $lastUpdated = null;
+        if ($isGenerated) {
+            $employees = Employee::with(['department', 'role'])->get();
+            $results = [];
+            foreach ($employees as $emp) {
+                $dual = KPICalculationService::calculateDualMetricsForEmployee($emp, $period);
+                $results[] = [
+                    'employee_id' => $emp->id,
+                    'fullname' => $emp->fullname,
+                    'department' => $emp->department ? $emp->department->name : '-',
+                    'position' => $emp->role ? $emp->role->title : '-',
+                    'working_days' => $dual['working_days'] ?? 20,
+                    'log_count' => $dual['unique_log_days'] ?? 0,
+                    'log_percentage' => $dual['log_pct'],
+                    'checkout_percentage' => $dual['checkout_pct'],
+                    'composite_score' => $dual['score'],
+                    'performance_level' => $dual['level'],
+                    'photo' => $emp->profile_photo ?? null,
+                ];
+            }
+            $kpiData = collect($results)->sortByDesc('composite_score')->values()->all();
+            $bestEmployee = $kpiData[0] ?? null;
+
+            // Update cache with fresh data
+            \Illuminate\Support\Facades\Cache::put('company_kpi_dashboard_data', [
+                'period' => $period,
+                'data' => $kpiData,
+                'best_employee' => $bestEmployee,
+                'last_updated' => now()->toDateTimeString(),
+            ], now()->addMinutes(30));
+
+            $lastUpdated = now()->toDateTimeString();
+        } else {
+            $kpiData = [];
+            $bestEmployee = null;
+        }
+
+        $periodFormatted = \Carbon\Carbon::createFromFormat('Y-m', $period)->format('F Y');
+
+        return view('kpi.company', compact('kpiData', 'lastUpdated', 'bestEmployee', 'period', 'periodFormatted', 'isGenerated', 'canGenerate'));
     }
 
     /**

@@ -110,9 +110,31 @@ Route::middleware(['auth'])->group(function () {
     Route::post('employees/{employee}/reset-device', [EmployeeController::class, 'resetDevice'])
         ->name('employees.reset-device')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
-    Route::resource('employees', EmployeeController::class)->middleware([
-        'role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN,
-    ]);
+
+    Route::get('employees', [EmployeeController::class, 'index'])
+        ->name('employees.index')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+
+    Route::get('employees/create', [EmployeeController::class, 'create'])
+        ->name('employees.create')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+
+    Route::post('employees', [EmployeeController::class, 'store'])
+        ->name('employees.store')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+
+    Route::delete('employees/{employee}', [EmployeeController::class, 'destroy'])
+        ->name('employees.destroy')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+
+    Route::get('employees/{employee}', [EmployeeController::class, 'show'])
+        ->name('employees.show');
+
+    Route::get('employees/{employee}/edit', [EmployeeController::class, 'edit'])
+        ->name('employees.edit');
+
+    Route::put('employees/{employee}', [EmployeeController::class, 'update'])
+        ->name('employees.update');
     Route::post('employees/{employee}/documents', [DocumentController::class, 'store'])
         ->name('employees.documents.store')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
@@ -413,9 +435,21 @@ Route::middleware(['auth'])->group(function () {
     Route::get('kpi/team', [KPIController::class, 'team'])
         ->name('kpi.team')
         ->middleware(['role:Manager / Unit Head,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+    Route::post('kpi/team/assign', [KPIController::class, 'assignTeam'])
+        ->name('kpi.team.assign')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+    Route::post('kpi/team/delete/{supervisorId}', [KPIController::class, 'deleteTeam'])
+        ->name('kpi.team.delete')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::get('kpi/department', [KPIController::class, 'department'])
         ->name('kpi.department')
         ->middleware(['role:Manager / Unit Head,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+    Route::post('kpi/department/assign', [KPIController::class, 'assignDepartment'])
+        ->name('kpi.department.assign')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+    Route::post('kpi/department/delete/{departmentId}', [KPIController::class, 'deleteDepartment'])
+        ->name('kpi.department.delete')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::get('kpi/company', [KPIController::class, 'companyDashboard'])
         ->name('kpi.company')
         ->middleware(['role:Administrator,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
@@ -448,6 +482,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('reports/monthly-recap', [ReportingController::class, 'monthlyRecap'])->name('reports.monthly-recap');
     Route::get('reports/executive', [ReportingController::class, 'executiveDashboard'])
         ->name('reports.executive')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+    Route::post('reports/generate-kpi', [ReportingController::class, 'generateMonthlyKPI'])
+        ->name('reports.generate-kpi')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::get('reports/{id}/export-pdf', [ReportingController::class, 'exportPDF'])->name('reports.export-pdf');
     Route::get('reports/export-csv', [ReportingController::class, 'exportCSV'])
