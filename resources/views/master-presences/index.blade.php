@@ -2,20 +2,23 @@
 
 @section('content')
 <div class="page-heading mb-4">
-    <div class="row align-items-center">
-        <div class="col-md-7 col-lg-8 mb-3 mb-md-0">
-            <h3 class="fw-bold"><i class="bi bi-gear-fill text-primary me-2"></i> Master Presence</h3>
-            <p class="text-subtitle text-muted mb-0">Manage work hours, lateness rules, and network security.</p>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+        <div class="d-flex align-items-center order-2 order-md-1 mt-3 mt-md-0">
+            <a href="{{ route('presences.index') }}" class="btn btn-secondary me-3" title="Back">
+                <i class="bi bi-arrow-left fs-5"></i>
+            </a>
+            <div>
+                <h3 class="mb-0 fw-bold">Master Presence</h3>
+                <p class="text-subtitle text-muted mb-0 mt-1">Manage work hours, lateness rules, and network security.</p>
+            </div>
         </div>
-        <div class="col-md-5 col-lg-4 text-md-end">
-            <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-md-end">
-                <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{ route('dashboard') }}" class="text-decoration-none">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('presences.index') }}" class="text-decoration-none">Presences</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Master</li>
-                </ol>
-            </nav>
-        </div>
+        <nav aria-label="breadcrumb" class="breadcrumb-header order-1 order-md-2">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{{ route('dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('presences.index') }}" class="text-decoration-none">Presences</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Master</li>
+            </ol>
+        </nav>
     </div>
 </div>
 
@@ -68,14 +71,27 @@
                             <div class="form-check form-switch mb-2">
                                 <input type="hidden" name="enable_late_wfo" value="0">
                                 <input class="form-check-input toggle-late" type="checkbox" name="enable_late_wfo" value="1" id="chk_wfo" data-target="div_wfo" {{ $settings['enable_late_wfo'] == '1' ? 'checked' : '' }}>
-                                <label class="form-check-label fw-bold text-dark" for="chk_wfo">Enable WFO Lateness</label>
+                                <label class="form-check-label fw-bold text-body" for="chk_wfo">Enable WFO Lateness</label>
                             </div>
                             <div id="div_wfo" style="display: {{ $settings['enable_late_wfo'] == '1' ? 'block' : 'none' }};">
                                 <label class="small fw-semibold text-secondary mt-2">WFO Lateness Tolerance (Minutes)</label>
                                 <div class="input-group mt-1">
                                     <input type="number" name="late_threshold_wfo" class="form-control rounded-start" value="{{ $settings['late_threshold_wfo'] }}" min="0">
-                                    <span class="input-group-text bg-white text-muted rounded-end">Mins</span>
+                                    <span class="input-group-text text-muted rounded-end">Mins</span>
                                 </div>
+                            </div>
+
+                            <hr class="text-primary opacity-25 my-3">
+                            
+                            <div class="form-check form-switch mb-2">
+                                <input type="hidden" name="enable_max_checkout_wfo" value="0">
+                                <input class="form-check-input toggle-late" type="checkbox" name="enable_max_checkout_wfo" value="1" id="chk_wfo_max_checkout" data-target="div_wfo_max_checkout" {{ ($settings['enable_max_checkout_wfo'] ?? '0') == '1' ? 'checked' : '' }}>
+                                <label class="form-check-label fw-bold text-body" for="chk_wfo_max_checkout">Enable WFO Max Checkout Time</label>
+                            </div>
+                            <div id="div_wfo_max_checkout" style="display: {{ ($settings['enable_max_checkout_wfo'] ?? '0') == '1' ? 'block' : 'none' }};">
+                                <label class="small fw-semibold text-secondary mt-2">Maximum Checkout Time</label>
+                                <input type="time" name="max_checkout_time_wfo" class="form-control mt-1" value="{{ $settings['max_checkout_time_wfo'] ?? '17:30' }}">
+                                <small class="text-muted d-block mt-1">Employees cannot checkout after this time.</small>
                             </div>
                         </div>
 
@@ -84,14 +100,27 @@
                             <div class="form-check form-switch mb-2">
                                 <input type="hidden" name="enable_late_wfh" value="0">
                                 <input class="form-check-input toggle-late" type="checkbox" name="enable_late_wfh" value="1" id="chk_wfh" data-target="div_wfh" {{ $settings['enable_late_wfh'] == '1' ? 'checked' : '' }}>
-                                <label class="form-check-label fw-bold text-dark" for="chk_wfh">Enable WFH Lateness</label>
+                                <label class="form-check-label fw-bold text-body" for="chk_wfh">Enable WFH Lateness</label>
                             </div>
                             <div id="div_wfh" style="display: {{ $settings['enable_late_wfh'] == '1' ? 'block' : 'none' }};">
                                 <label class="small fw-semibold text-secondary mt-2">WFH Lateness Tolerance (Minutes)</label>
                                 <div class="input-group mt-1">
                                     <input type="number" name="late_threshold_wfh" class="form-control rounded-start" value="{{ $settings['late_threshold_wfh'] }}" min="0">
-                                    <span class="input-group-text bg-white text-muted rounded-end">Mins</span>
+                                    <span class="input-group-text text-muted rounded-end">Mins</span>
                                 </div>
+                            </div>
+
+                            <hr class="text-success opacity-25 my-3">
+                            
+                            <div class="form-check form-switch mb-2">
+                                <input type="hidden" name="enable_max_checkout_wfh" value="0">
+                                <input class="form-check-input toggle-late" type="checkbox" name="enable_max_checkout_wfh" value="1" id="chk_wfh_max_checkout" data-target="div_wfh_max_checkout" {{ ($settings['enable_max_checkout_wfh'] ?? '0') == '1' ? 'checked' : '' }}>
+                                <label class="form-check-label fw-bold text-body" for="chk_wfh_max_checkout">Enable WFH Max Checkout Time</label>
+                            </div>
+                            <div id="div_wfh_max_checkout" style="display: {{ ($settings['enable_max_checkout_wfh'] ?? '0') == '1' ? 'block' : 'none' }};">
+                                <label class="small fw-semibold text-secondary mt-2">Maximum Checkout Time</label>
+                                <input type="time" name="max_checkout_time_wfh" class="form-control mt-1" value="{{ $settings['max_checkout_time_wfh'] ?? '17:30' }}">
+                                <small class="text-muted d-block mt-1">Employees cannot checkout after this time.</small>
                             </div>
                         </div>
 
@@ -100,14 +129,27 @@
                             <div class="form-check form-switch mb-2">
                                 <input type="hidden" name="enable_late_wfa" value="0">
                                 <input class="form-check-input toggle-late" type="checkbox" name="enable_late_wfa" value="1" id="chk_wfa" data-target="div_wfa" {{ $settings['enable_late_wfa'] == '1' ? 'checked' : '' }}>
-                                <label class="form-check-label fw-bold text-dark" for="chk_wfa">Enable WFA Lateness</label>
+                                <label class="form-check-label fw-bold text-body" for="chk_wfa">Enable WFA Lateness</label>
                             </div>
                             <div id="div_wfa" style="display: {{ $settings['enable_late_wfa'] == '1' ? 'block' : 'none' }};">
                                 <label class="small fw-semibold text-secondary mt-2">WFA Lateness Tolerance (Minutes)</label>
                                 <div class="input-group mt-1">
                                     <input type="number" name="late_threshold_wfa" class="form-control rounded-start" value="{{ $settings['late_threshold_wfa'] }}" min="0">
-                                    <span class="input-group-text bg-white text-muted rounded-end">Mins</span>
+                                    <span class="input-group-text text-muted rounded-end">Mins</span>
                                 </div>
+                            </div>
+
+                            <hr class="text-info opacity-25 my-3">
+                            
+                            <div class="form-check form-switch mb-2">
+                                <input type="hidden" name="enable_max_checkout_wfa" value="0">
+                                <input class="form-check-input toggle-late" type="checkbox" name="enable_max_checkout_wfa" value="1" id="chk_wfa_max_checkout" data-target="div_wfa_max_checkout" {{ ($settings['enable_max_checkout_wfa'] ?? '0') == '1' ? 'checked' : '' }}>
+                                <label class="form-check-label fw-bold text-body" for="chk_wfa_max_checkout">Enable WFA Max Checkout Time</label>
+                            </div>
+                            <div id="div_wfa_max_checkout" style="display: {{ ($settings['enable_max_checkout_wfa'] ?? '0') == '1' ? 'block' : 'none' }};">
+                                <label class="small fw-semibold text-secondary mt-2">Maximum Checkout Time</label>
+                                <input type="time" name="max_checkout_time_wfa" class="form-control mt-1" value="{{ $settings['max_checkout_time_wfa'] ?? '17:30' }}">
+                                <small class="text-muted d-block mt-1">Employees cannot checkout after this time.</small>
                             </div>
                         </div>
                     </div>
@@ -126,7 +168,7 @@
                         </p>
                         
                         <div class="alert bg-warning bg-opacity-10 border border-warning border-opacity-50 rounded p-3 mt-4">
-                            <h6 class="alert-heading fw-bold text-dark"><i class="bi bi-info-circle-fill text-warning me-1"></i> System Note:</h6>
+                            <h6 class="alert-heading fw-bold text-body"><i class="bi bi-info-circle-fill text-warning me-1"></i> System Note:</h6>
                             <p class="mb-0 small text-secondary">WFO clock-ins are automatically rejected if the employee's IP address doesn't match the registered branch IP.</p>
                         </div>
 
@@ -149,7 +191,7 @@
                 <div class="form-group mb-0 w-100 w-md-50">
                     <label class="form-label fw-semibold text-secondary">Hourly Overtime Rate</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-light text-muted rounded-start">Rp</span>
+                        <span class="input-group-text text-muted rounded-start">Rp</span>
                         <input type="number" name="overtime_rate_per_hour" class="form-control rounded-end" value="{{ $settings['overtime_rate_per_hour'] ?? 0 }}">
                     </div>
                     <small class="text-muted">This rate is multiplied by the approved overtime hours during payroll calculation.</small>
@@ -186,7 +228,7 @@
         
         {{-- Actions --}}
         <div class="d-flex flex-column flex-md-row justify-content-end gap-3 mt-4 mb-5">
-            <a href="{{ route('presences.index') }}" class="btn btn-light shadow-sm rounded px-4 fw-semibold text-secondary order-2 order-md-1">
+            <a href="{{ route('presences.index') }}" class="btn btn-outline-secondary shadow-sm rounded px-4 fw-semibold order-2 order-md-1">
                 Cancel
             </a>
             <button type="submit" class="btn btn-primary shadow-sm rounded px-5 fw-bold order-1 order-md-2">

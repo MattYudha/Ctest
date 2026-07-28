@@ -3,7 +3,15 @@
 @section ('content')
     @php
         $config = \App\Models\LetterConfiguration::first();
+        
+        // Increase timeout and memory for DOMPDF for large base64 images
+        set_time_limit(300);
+        ini_set('memory_limit', '512M');
+        
         $html = view('letters.pdf', compact('letter', 'config'))->render();
+        // Fix DOMPDF deadlock on Windows artisan serve by replacing HTTP URLs with local file paths (with forward slashes for DOMPDF)
+        $localPath = str_replace('\\', '/', storage_path('app/public/tinymce_uploads'));
+        $html = preg_replace('/src="(https?:\/\/[^\/]+|(?:\.\.\/)+|\/)?(storage|media)\/tinymce_uploads\//', 'src="' . $localPath . '/', $html);
         
         // Render PDF once to count pages
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'portrait');

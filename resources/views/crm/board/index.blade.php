@@ -213,16 +213,23 @@
         <div class="kanban-board">
             @foreach($columns as $key => $column)
                 <div class="kanban-column shadow-sm">
-                    <div class="kanban-column-header">
-                        <div class="d-flex align-items-center">
-                            <div class="bg-light-{{ $column['color'] }} text-{{ $column['color'] }} rounded me-2" style="width: 35px; height: 35px;">
-                                <i class="bi {{ $column['icon'] }} fs-5 d-flex align-items-center justify-content-center w-100 h-100" style="line-height: 0;"></i>
+                    <div class="kanban-column-header flex-column align-items-stretch">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-light-{{ $column['color'] }} text-{{ $column['color'] }} rounded me-2 text-center" style="width: 35px; height: 35px; line-height: 35px;">
+                                    <i class="bi {{ $column['icon'] }} fs-5"></i>
+                                </div>
+                                <h6 class="mb-0 fw-bold">{{ $column['title'] }}</h6>
                             </div>
-                            <h6 class="mb-0 fw-bold">{{ $column['title'] }}</h6>
+                            <span class="badge bg-light-secondary text-secondary rounded-pill fw-bold px-2 py-1" id="count-{{ $key }}">
+                                {{ isset($deals[$key]) ? count($deals[$key]) : 0 }}
+                            </span>
                         </div>
-                        <span class="badge bg-light-secondary text-secondary rounded-pill fw-bold px-2 py-1" id="count-{{ $key }}">
-                            {{ isset($deals[$key]) ? count($deals[$key]) : 0 }}
-                        </span>
+                        <div class="position-relative mt-2 d-flex align-items-center">
+                            <i class="bi bi-search position-absolute text-muted mb-2" style="left: 12px; font-size: 0.85rem; pointer-events: none;"></i>
+                            <input type="text" class="form-control form-control-sm column-search-input" style="padding-left: 36px; padding-right: 32px;" data-target="column-{{ $key }}" placeholder="Search..." spellcheck="false">
+                            <i class="bi bi-x-circle-fill position-absolute search-clear-icon text-muted mb-2" style="right: 12px; font-size: 0.95rem; cursor: pointer; display: none; opacity: 0.6; z-index: 10;" onclick="clearSearch(this, 'column-{{ $key }}')"></i>
+                        </div>
                     </div>
                     
                     <div class="kanban-cards" id="column-{{ $key }}" data-status="{{ $key }}">
@@ -311,18 +318,55 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    @if(session('error'))
+                        <div class="alert alert-danger mb-3 d-flex align-items-center">
+                            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                            <div>{{ session('error') }}</div>
+                        </div>
+                    @endif
+                    @if($errors->any())
+                        <div class="alert alert-danger mb-3">
+                            <ul class="mb-0">
+                                @foreach($errors->all() as $e)
+                                    <li>{{ $e }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                     <div class="mb-3">
                         <label class="form-label fw-bold">Title <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="title" required placeholder="E.g., Follow up meeting">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Related Contact</label>
-                        <select class="form-select" name="crm_contact_id" id="contact_id_add">
-                            <option value="">-- None --</option>
-                            @foreach($contacts as $contact)
-                                <option value="{{ $contact->id }}">{{ $contact->company_name }}</option>
-                            @endforeach
-                        </select>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="is_new_contact" id="is_new_contact" value="1" {{ old('is_new_contact') ? 'checked' : '' }}>
+                            <label class="form-check-label text-muted small" for="is_new_contact">
+                                Create new contact instead
+                            </label>
+                        </div>
+                        <div id="existing_contact_wrapper">
+                            <select class="form-select" name="crm_contact_id" id="contact_id_add">
+                                <option value="">-- None --</option>
+                                @foreach($contacts as $contact)
+                                    <option value="{{ $contact->id }}">{{ $contact->company_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div id="new_contact_wrapper" style="display: {{ old('is_new_contact') ? 'block' : 'none' }};" class="p-3 border rounded bg-body-tertiary mt-2">
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Company / Contact Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" name="new_contact_name" id="new_contact_name" value="{{ old('new_contact_name') }}">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold">Phone</label>
+                                <input type="text" class="form-control form-control-sm" name="new_contact_phone" value="{{ old('new_contact_phone') }}">
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label small fw-bold">Email</label>
+                                <input type="email" class="form-control form-control-sm" name="new_contact_email" value="{{ old('new_contact_email') }}">
+                            </div>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Estimated Value (Rp)</label>
@@ -342,7 +386,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Task</button>
                 </div>
             </div>
@@ -362,11 +406,13 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="editDealCreatorInfo" class="alert alert-light-info py-2 px-3 mb-3 d-none align-items-center">
-                        <i class="bi bi-person-circle me-2 fs-5"></i>
+                    <div id="editDealCreatorInfo" class="d-none align-items-center p-2 mb-3 border rounded">
+                        <div class="bg-light-primary text-primary rounded-circle text-center me-3" style="width: 36px; height: 36px; line-height: 36px;">
+                            <i class="bi bi-person-fill fs-5"></i>
+                        </div>
                         <div>
-                            <span class="small fw-bold d-block">Created by: </span>
-                            <span class="small text-muted" id="editDealCreatorName"></span>
+                            <div class="text-muted mb-0" style="font-size: 0.75rem;">Created by</div>
+                            <div class="fw-bold text-body" style="font-size: 0.9rem;" id="editDealCreatorName"></div>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -392,7 +438,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </div>
@@ -554,6 +600,53 @@
             });
         });
         
+        // Search functionality per column
+        $('.column-search-input').on('keyup', function() {
+            let targetId = $(this).data('target');
+            let query = $(this).val().toLowerCase();
+            let clearIcon = $(this).next('.search-clear-icon');
+            
+            if(query.length > 0) {
+                clearIcon.show();
+            } else {
+                clearIcon.hide();
+            }
+            
+            $('#' + targetId + ' .kanban-card').each(function() {
+                let textContent = $(this).text().toLowerCase();
+                if (textContent.includes(query)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        });
+        
+        window.clearSearch = function(el, targetId) {
+            let input = $(el).prev('.column-search-input');
+            input.val('');
+            $(el).hide(); // hide the clear icon itself
+            input.trigger('keyup');
+        }
+
+        // Toggle new contact form
+        function toggleNewContactFields() {
+            if($('#is_new_contact').is(':checked')) {
+                $('#existing_contact_wrapper').hide();
+                $('#new_contact_wrapper').show();
+                $('#new_contact_name').attr('required', true);
+                if(window.contactAddChoices) {
+                    window.contactAddChoices.setChoiceByValue('');
+                }
+            } else {
+                $('#existing_contact_wrapper').show();
+                $('#new_contact_wrapper').hide();
+                $('#new_contact_name').removeAttr('required');
+            }
+        }
+        $('#is_new_contact').on('change', toggleNewContactFields);
+        toggleNewContactFields(); // Run on init
+        
         // Expose format helper globally if needed
         window.formatRupiah = formatRupiah;
     });
@@ -601,5 +694,13 @@
         
         new bootstrap.Modal(document.getElementById('editDealModal')).show();
     }
+
+    // Reopen modal if there are errors (like duplicate contact)
+    @if(session('error') || $errors->any())
+        document.addEventListener("DOMContentLoaded", function() {
+            var myModal = new bootstrap.Modal(document.getElementById('addDealModal'));
+            myModal.show();
+        });
+    @endif
 </script>
 @endpush

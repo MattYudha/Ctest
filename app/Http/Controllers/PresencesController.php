@@ -108,6 +108,18 @@ class PresencesController extends Controller
                         $row->check_in &&
                         !$row->check_out
                     ) {
+                        $workTypeLower = strtolower($row->work_type ?? 'WFO');
+                        $enableMaxCheckout = \App\Models\Setting::getValue('enable_max_checkout_' . $workTypeLower, '0') === '1';
+                        
+                        if ($enableMaxCheckout) {
+                            $maxCheckoutTimeStr = \App\Models\Setting::getValue('max_checkout_time_' . $workTypeLower, '17:30');
+                            $maxCheckoutTime = Carbon::parse(date('Y-m-d') . ' ' . $maxCheckoutTimeStr);
+                            
+                            if (Carbon::now()->gt($maxCheckoutTime)) {
+                                return '-';
+                            }
+                        }
+
                         return '<a href="' .
                             route('presences.checkout') .
                             '" class="btn btn-sm btn-success">Check Out</a>';
@@ -368,7 +380,7 @@ class PresencesController extends Controller
                 return redirect()->back()->with('error', 'Invalid session. Please log in again.');
             }
 
-            $today = Carbon::today();
+            $today = Carbon::today(env('APP_TIMEZONE', 'Asia/Jakarta'));
             $existingPresence = Presence::where('employee_id', $employeeId)
                 ->whereDate('date', $today)
                 ->whereNotNull('check_in')
@@ -382,9 +394,9 @@ class PresencesController extends Controller
                 }
             }
 
-            $checkInTime = Carbon::now();
+            $checkInTime = Carbon::now(env('APP_TIMEZONE', 'Asia/Jakarta'));
             $workStartTimeStr = Setting::getValue('work_start_time', '08:00');
-            $workStartTime = Carbon::parse(date('Y-m-d') . ' ' . $workStartTimeStr);
+            $workStartTime = Carbon::parse(date('Y-m-d') . ' ' . $workStartTimeStr, env('APP_TIMEZONE', 'Asia/Jakarta'));
             $lateThreshold = (int) Setting::getValue('late_threshold_minutes', 15);
 
             try {
@@ -678,7 +690,7 @@ class PresencesController extends Controller
         $employee = $employeeId ? Employee::with('officeLocation')->find($employeeId) : null;
 
         // find today's presence record with check-in but no check-out
-        $today = Carbon::today();
+        $today = Carbon::today(env('APP_TIMEZONE', 'Asia/Jakarta'));
         $presence = Presence::with('officeLocation')
             ->where('employee_id', $employeeId)
             ->whereDate('date', $today)
@@ -700,13 +712,30 @@ class PresencesController extends Controller
                 : $this->defaultOfficeLocationConfig();
 
         // validate check-out cannot be before check-in
-        $checkInTime = Carbon::parse($presence->check_in);
-        $checkOutTime = Carbon::now();
+        $checkInTime = Carbon::parse($presence->check_in, env('APP_TIMEZONE', 'Asia/Jakarta'));
+        $checkOutTime = Carbon::now(env('APP_TIMEZONE', 'Asia/Jakarta'));
 
         if ($checkOutTime->lt($checkInTime)) {
             return redirect()
                 ->route('presences.checkout')
                 ->with('error', 'Check-out time cannot be before check-in time.');
+        }
+
+        // check max checkout time configuration based on work type
+        $workTypeLower = strtolower($workType);
+        $enableMaxCheckoutKey = 'enable_max_checkout_' . $workTypeLower;
+        $maxCheckoutTimeKey = 'max_checkout_time_' . $workTypeLower;
+
+        $enableMaxCheckout = Setting::getValue($enableMaxCheckoutKey, '0') === '1';
+        if ($enableMaxCheckout) {
+            $maxCheckoutTimeStr = Setting::getValue($maxCheckoutTimeKey, '17:30');
+            $maxCheckoutTime = Carbon::parse(date('Y-m-d') . ' ' . $maxCheckoutTimeStr);
+
+            if ($checkOutTime->gt($maxCheckoutTime)) {
+                return redirect()
+                    ->route('presences.index')
+                    ->with('error', 'You cannot check-out because it is past the maximum allowed check-out time (' . $maxCheckoutTimeStr . ') for ' . $workType . '.');
+            }
         }
 
         // for wfo, calculate gps distance but do not block the checkout if out of bounds
@@ -976,12 +1005,12 @@ class PresencesController extends Controller
                 return false;
             }
 
-            $checkInTime = Carbon::parse($presence->check_in);
+            $checkInTime = Carbon::parse($presence->check_in, env('APP_TIMEZONE', 'Asia/Jakarta'));
             $dateStr =
                 $presence->date instanceof \DateTime ? $presence->date->format('Y-m-d') : (string) $presence->date;
 
             $workStartTimeStr = Setting::getValue('work_start_time', '08:00');
-            $workStartTime = Carbon::parse($dateStr . ' ' . $workStartTimeStr);
+            $workStartTime = Carbon::parse($dateStr . ' ' . $workStartTimeStr, env('APP_TIMEZONE', 'Asia/Jakarta'));
 
             // get specific minute tolerance according to the work type
             $lateThreshold = (int) Setting::getValue('late_threshold_' . $workType, 15);

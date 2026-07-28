@@ -684,13 +684,26 @@ class PayrollsController extends Controller
             return redirect()->back()->with('error', 'Payroll slip has not been paid yet and cannot be printed.');
         }
 
-        return view('payrolls.print', compact('payroll'));
+        $reimbursements = \App\Models\FinancialClaim::where('employee_id', $payroll->employee_id)
+            ->where('status', 'approved')
+            ->whereMonth('created_at', $payroll->period_month)
+            ->whereYear('created_at', $payroll->period_year)
+            ->get();
+
+        return view('payrolls.print', compact('payroll', 'reimbursements'));
     }
 
     public function showSlip($id)
     {
         $payroll = Payroll::with('employee.department')->findOrFail($id);
-        return view('payrolls.slip', compact('payroll'));
+        
+        $reimbursements = \App\Models\FinancialClaim::where('employee_id', $payroll->employee_id)
+            ->where('status', 'approved')
+            ->whereMonth('created_at', $payroll->period_month)
+            ->whereYear('created_at', $payroll->period_year)
+            ->get();
+            
+        return view('payrolls.slip', compact('payroll', 'reimbursements'));
     }
 
     public function updateStatus(Request $request, $id)
@@ -726,21 +739,40 @@ class PayrollsController extends Controller
                     $payroll->period_year;
 
                 // 3. record to cash book using $accountid from central database
-                $transaction = FinancialTransaction::create([
+                $transactionData = [
                     'account_id' => $accountId,
                     'amount' => $payroll->net_salary,
-                    'transaction_date' => now(),
-                    'transaction_type' => 'kredit', // cash out
                     'description' => $description,
-                    'created_by' => auth()->id(),
-                ]);
+                ];
 
-                // save relation id
-                $payroll->financial_transaction_id = $transaction->id;
+                if ($payroll->financial_transaction_id && $tx = \App\Models\FinancialTransaction::find($payroll->financial_transaction_id)) {
+                    $tx->update($transactionData);
+                } else {
+                    $transactionData['transaction_date'] = now();
+                    $transactionData['transaction_type'] = 'kredit'; // cash out
+                    $transactionData['created_by'] = auth()->id();
+                    $transactionData['running_balance'] = '0.00';
+                    
+                    $transaction = \App\Models\FinancialTransaction::create($transactionData);
+                    // save relation id
+                    $payroll->financial_transaction_id = $transaction->id;
+                }
             }
 
             $payroll->save();
         });
+
+        if ($newStatus === 'paid') {
+            $transactions = \App\Models\FinancialTransaction::orderBy('transaction_date')
+                ->orderBy('id')
+                ->get();
+
+            $balance = 0;
+            foreach ($transactions as $trx) {
+                $balance += ($trx->transaction_type === 'debit') ? $trx->amount : -$trx->amount;
+                $trx->update(['running_balance' => $balance]);
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -891,14 +923,16 @@ class PayrollsController extends Controller
             'B' => 'Nama Karyawan',
             'C' => 'NIK',
             'D' => 'NPWP',
-            'E' => 'Periode',
-            'F' => 'Gaji Awal',
-            'G' => 'Total Penambahan',
-            'H' => 'Total Pengurangan',
-            'I' => 'Total Setelah Pengurangan & Penambahan (Gaji Akhir)',
-            'J' => 'Tarif PPh 21',
-            'K' => 'Potongan PPh 21',
-            'L' => 'Gaji Bersih (Take Home Pay)'
+            'E' => 'Status',
+            'F' => 'Periode',
+            'G' => 'Gaji Awal',
+            'H' => 'Total Penambahan',
+            'I' => 'Total Pengurangan',
+            'J' => 'Total Setelah Pengurangan & Penambahan (Gaji Akhir)',
+            'K' => 'Tarif PPh 21',
+            'L' => 'Potongan PPh 21',
+            'M' => 'Total Reimbursement',
+            'N' => 'Gaji Bersih (Take Home Pay)'
         ];
 
         // Set Headers
@@ -906,7 +940,7 @@ class PayrollsController extends Controller
             $sheet->setCellValue($col . '1', $title);
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
-        $sheet->getStyle('A1:L1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:N1')->applyFromArray($headerStyle);
         $sheet->getRowDimension(1)->setRowHeight(30);
 
         // Fill Data
@@ -923,32 +957,39 @@ class PayrollsController extends Controller
             $totalPenambahan = (float)($payroll->overtime_amount ?? 0) 
                 + (float)($payroll->performance_bonus ?? 0) 
                 + (float)($payroll->attendance_bonus ?? 0) 
-                + (float)($payroll->other_bonus ?? 0) 
-                + (float)($payroll->reimbursement ?? 0);
+                + (float)($payroll->other_bonus ?? 0); // Reimbursement removed
                 
-            $totalPengurangan = (float) ($payroll->total_deductions ?? 0);
+            $reimbursement = (float)($payroll->reimbursement ?? 0);
+            $pph21Amount = (float) ($payroll->pph21 ?? 0);
             
-            // Total After Deductions = (Gaji Awal + Penambahan) - Pengurangan
+            // Exclude PPh 21 from Total Pengurangan
+            $totalPengurangan = (float) ($payroll->total_deductions ?? 0) - $pph21Amount;
+            
+            // Total After Deductions = (Gaji Awal + Penambahan) - Pengurangan (Without PPh 21 and Without Reimbursement)
             $totalSetelahPengurangan = ($gajiAwal + $totalPenambahan) - $totalPengurangan;
             
             // PPH 21
             $pph21Rate = (float) ($payroll->employee->pph21_rate ?? 0);
-            $pph21Amount = (float) ($payroll->pph21 ?? 0);
 
+            // Gaji Bersih is mathematically equivalent to the saved net_salary (which already has PPh 21 subtracted and Reimbursement added)
             $netSalary = (float) ($payroll->net_salary ?? 0);
+
+            $statusKaryawan = $payroll->employee->employee_status ?? 'Unknown';
 
             $sheet->setCellValue('A' . $row, $index + 1);
             $sheet->setCellValue('B' . $row, $payroll->employee->fullname ?? 'Unknown');
             $sheet->setCellValue('C' . $row, "'" . ($payroll->employee->nik ?? '-')); // Prevent scientific notation for large NIK
             $sheet->setCellValue('D' . $row, "'" . ($payroll->employee->npwp ?? '-'));
-            $sheet->setCellValue('E' . $row, $period);
-            $sheet->setCellValue('F' . $row, $gajiAwal);
-            $sheet->setCellValue('G' . $row, $totalPenambahan);
-            $sheet->setCellValue('H' . $row, $totalPengurangan);
-            $sheet->setCellValue('I' . $row, $totalSetelahPengurangan);
-            $sheet->setCellValue('J' . $row, $pph21Rate . '%');
-            $sheet->setCellValue('K' . $row, $pph21Amount);
-            $sheet->setCellValue('L' . $row, $netSalary);
+            $sheet->setCellValue('E' . $row, $statusKaryawan ? ucfirst($statusKaryawan) : '-');
+            $sheet->setCellValue('F' . $row, $period);
+            $sheet->setCellValue('G' . $row, $gajiAwal);
+            $sheet->setCellValue('H' . $row, $totalPenambahan);
+            $sheet->setCellValue('I' . $row, $totalPengurangan);
+            $sheet->setCellValue('J' . $row, $totalSetelahPengurangan);
+            $sheet->setCellValue('K' . $row, $pph21Rate . '%');
+            $sheet->setCellValue('L' . $row, $pph21Amount);
+            $sheet->setCellValue('M' . $row, $reimbursement);
+            $sheet->setCellValue('N' . $row, $netSalary);
 
             $row++;
         }
@@ -956,11 +997,11 @@ class PayrollsController extends Controller
         // Apply formatting for currency columns
         $lastRow = $row - 1;
         if ($lastRow >= 2) {
-            $sheet->getStyle('F2:I' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
-            $sheet->getStyle('K2:L' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle('G2:J' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle('L2:N' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
             
             // Add borders to data
-            $sheet->getStyle('A2:L' . $lastRow)->applyFromArray([
+            $sheet->getStyle('A2:N' . $lastRow)->applyFromArray([
                 'borders' => [
                     'allBorders' => ['borderStyle' => Border::BORDER_THIN],
                 ],
@@ -969,10 +1010,10 @@ class PayrollsController extends Controller
                 ],
             ]);
             
-            // Center align No, NIK, NPWP, Periode, PPh 21 Rate
+            // Center align No, NIK, NPWP, Status, Periode, PPh 21 Rate
             $sheet->getStyle('A2:A' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('C2:E' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle('J2:J' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('C2:F' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('K2:K' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         }
 
         $fileName = 'payroll_data_paid_' . now()->format('Ymd_His') . '.xlsx';
