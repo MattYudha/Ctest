@@ -56,6 +56,7 @@ class CalculateCompanyKPIDaily extends Command
                 'log_percentage' => $logPct,
                 'checkout_percentage' => $checkoutPct,
                 'composite_score' => $compositeScore,
+                'photo' => $employee->profile_photo ?? null,
             ];
         }
         

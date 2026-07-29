@@ -546,12 +546,14 @@
                             </a>
                         </li>
 
+                        @if(!Auth::user()->isMasterAdmin())
                         <li class="sidebar-item {{ $activeKpiDashboard ? 'active' : '' }}">
                             <a href="{{ url('/kpi/dashboard') }}" class="sidebar-link">
                                 <i class="bi bi-bar-chart-line"></i>
                                 <span>My KPI</span>
                             </a>
                         </li>
+                        @endif
 
                         <li class="sidebar-item {{ $activeWorkLogs ? 'active' : '' }}">
                             <a href="{{ route('work-logs.index') }}" class="sidebar-link">

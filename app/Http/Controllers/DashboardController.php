@@ -240,26 +240,43 @@ class DashboardController extends Controller
             $myLetterCount = Letter::where('user_id', $user->id)->count();
         }
 
-        /* ================= EMPLOYEE OF THE MONTH ================= */
-        $allEmp = Employee::all();
+        /* ================= EMPLOYEE OF THE MONTH (Recalculate Snapshot Cache) ================= */
         $periodNow = now()->format('Y-m');
         $employeeOfTheMonth = null;
-        $topScore = -1;
+        $cachedDashboard = \Illuminate\Support\Facades\Cache::get('company_kpi_dashboard_data');
 
-        foreach ($allEmp as $empItem) {
-            $dual = \App\Services\KPICalculationService::calculateDualMetricsForEmployee($empItem, $periodNow);
-            if ($dual['score'] > $topScore) {
-                $topScore = $dual['score'];
-                $employeeOfTheMonth = [
-                    'employee' => $empItem,
-                    'fullname' => $empItem->fullname,
-                    'department' => $empItem->department->name ?? 'General',
-                    'position' => $empItem->position->name ?? ($empItem->role->title ?? 'Staff'),
-                    'composite_score' => $dual['score'],
-                    'performance_level' => $dual['level'],
-                    'photo' => $empItem->profile_photo ?? null,
-                    'period_label' => now()->format('F Y'),
-                ];
+        if ($cachedDashboard && isset($cachedDashboard['best_employee']) && ($cachedDashboard['period'] ?? '') === $periodNow) {
+            $best = $cachedDashboard['best_employee'];
+            $empModel = Employee::find($best['employee_id'] ?? 0);
+            $employeeOfTheMonth = [
+                'employee' => $empModel,
+                'fullname' => $best['fullname'],
+                'department' => $best['department'],
+                'position' => $best['position'],
+                'composite_score' => $best['composite_score'],
+                'performance_level' => $best['performance_level'] ?? 'excellent',
+                'photo' => $best['photo'] ?? null,
+                'period_label' => \Carbon\Carbon::createFromFormat('Y-m', $periodNow)->format('F Y'),
+            ];
+        } else {
+            // Fallback calculation across all employees
+            $allEmp = Employee::all();
+            $topScore = -1;
+            foreach ($allEmp as $empItem) {
+                $dual = \App\Services\KPICalculationService::calculateDualMetricsForEmployee($empItem, $periodNow);
+                if ($dual['score'] > $topScore) {
+                    $topScore = $dual['score'];
+                    $employeeOfTheMonth = [
+                        'employee' => $empItem,
+                        'fullname' => $empItem->fullname,
+                        'department' => $empItem->department->name ?? 'General',
+                        'position' => $empItem->position->name ?? ($empItem->role->title ?? 'Staff'),
+                        'composite_score' => $dual['score'],
+                        'performance_level' => $dual['level'],
+                        'photo' => $empItem->profile_photo ?? null,
+                        'period_label' => now()->format('F Y'),
+                    ];
+                }
             }
         }
 

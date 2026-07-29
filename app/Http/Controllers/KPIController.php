@@ -504,9 +504,12 @@ class KPIController extends Controller
         $isGenerated = EmployeeKPIRecord::where('period', $period)->exists();
         $canGenerate = in_array($roleTitle, ['HR Administrator', \App\Constants\Roles::MASTER_ADMIN]);
 
-        // Always query fresh from DB so employee names/photos are never stale
-        $lastUpdated = null;
-        if ($isGenerated) {
+        $cachedData = \Illuminate\Support\Facades\Cache::get('company_kpi_dashboard_data');
+        if ($cachedData && isset($cachedData['data']) && ($cachedData['period'] ?? '') === $period) {
+            $kpiData = $cachedData['data'];
+            $bestEmployee = $cachedData['best_employee'];
+            $lastUpdated = $cachedData['last_updated'] ?? null;
+        } else if ($isGenerated) {
             $employees = Employee::with(['department', 'role'])->get();
             $results = [];
             foreach ($employees as $emp) {
@@ -527,19 +530,18 @@ class KPIController extends Controller
             }
             $kpiData = collect($results)->sortByDesc('composite_score')->values()->all();
             $bestEmployee = $kpiData[0] ?? null;
+            $lastUpdated = now()->toDateTimeString();
 
-            // Update cache with fresh data
             \Illuminate\Support\Facades\Cache::put('company_kpi_dashboard_data', [
                 'period' => $period,
                 'data' => $kpiData,
                 'best_employee' => $bestEmployee,
-                'last_updated' => now()->toDateTimeString(),
-            ], now()->addMinutes(30));
-
-            $lastUpdated = now()->toDateTimeString();
+                'last_updated' => $lastUpdated,
+            ], 86400 * 30);
         } else {
             $kpiData = [];
             $bestEmployee = null;
+            $lastUpdated = null;
         }
 
         $periodFormatted = \Carbon\Carbon::createFromFormat('Y-m', $period)->format('F Y');

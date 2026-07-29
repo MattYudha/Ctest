@@ -256,10 +256,10 @@
                                         <span class="badge bg-success me-2">{{ $excellent }}</span>
                                         <span>Excellent (90-100)</span>
                                     </div>
-                                    <span class="text-muted">{{ round(($excellent/$total)*100, 1) }}%</span>
+                                    <span class="text-muted">{{ $total > 0 ? round(($excellent/$total)*100, 1) : 0 }}%</span>
                                 </div>
                                 <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar bg-success" style="width: {{ ($excellent/$total)*100 }}%;"></div>
+                                    <div class="progress-bar bg-success" style="width: {{ $total > 0 ? ($excellent/$total)*100 : 0 }}%;"></div>
                                 </div>
                             </div>
 
@@ -269,23 +269,23 @@
                                         <span class="badge bg-info me-2">{{ $good }}</span>
                                         <span>Good (75-89)</span>
                                     </div>
-                                    <span class="text-muted">{{ round(($good/$total)*100, 1) }}%</span>
+                                    <span class="text-muted">{{ $total > 0 ? round(($good/$total)*100, 1) : 0 }}%</span>
                                 </div>
                                 <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar bg-info" style="width: {{ ($good/$total)*100 }}%;"></div>
+                                    <div class="progress-bar bg-info" style="width: {{ $total > 0 ? ($good/$total)*100 : 0 }}%;"></div>
                                 </div>
                             </div>
 
                             <div class="list-group-item px-0">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <div>
-                                        <span class="badge bg-warning me-2">{{ $satisfactory }}</span>
+                                        <span class="badge bg-primary me-2">{{ $satisfactory }}</span>
                                         <span>Satisfactory (60-74)</span>
                                     </div>
-                                    <span class="text-muted">{{ round(($satisfactory/$total)*100, 1) }}%</span>
+                                    <span class="text-muted">{{ $total > 0 ? round(($satisfactory/$total)*100, 1) : 0 }}%</span>
                                 </div>
                                 <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar bg-warning" style="width: {{ ($satisfactory/$total)*100 }}%;"></div>
+                                    <div class="progress-bar bg-primary" style="width: {{ $total > 0 ? ($satisfactory/$total)*100 : 0 }}%;"></div>
                                 </div>
                             </div>
 
@@ -293,12 +293,12 @@
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <div>
                                         <span class="badge bg-warning me-2">{{ $needsImprovement }}</span>
-                                        <span>Needs Improvement (45-59)</span>
+                                        <span>Needs Improvement (50-59)</span>
                                     </div>
-                                    <span class="text-muted">{{ round(($needsImprovement/$total)*100, 1) }}%</span>
+                                    <span class="text-muted">{{ $total > 0 ? round(($needsImprovement/$total)*100, 1) : 0 }}%</span>
                                 </div>
                                 <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar bg-warning" style="width: {{ ($needsImprovement/$total)*100 }}%;"></div>
+                                    <div class="progress-bar bg-warning" style="width: {{ $total > 0 ? ($needsImprovement/$total)*100 : 0 }}%;"></div>
                                 </div>
                             </div>
 
@@ -306,12 +306,12 @@
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <div>
                                         <span class="badge bg-danger me-2">{{ $unsatisfactory }}</span>
-                                        <span>Unsatisfactory (&lt;45)</span>
+                                        <span>Unsatisfactory (<50)</span>
                                     </div>
-                                    <span class="text-muted">{{ round(($unsatisfactory/$total)*100, 1) }}%</span>
+                                    <span class="text-muted">{{ $total > 0 ? round(($unsatisfactory/$total)*100, 1) : 0 }}%</span>
                                 </div>
                                 <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar bg-danger" style="width: {{ ($unsatisfactory/$total)*100 }}%;"></div>
+                                    <div class="progress-bar bg-danger" style="width: {{ $total > 0 ? ($unsatisfactory/$total)*100 : 0 }}%;"></div>
                                 </div>
                             </div>
                         </div>

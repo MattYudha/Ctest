@@ -86,7 +86,8 @@ class ReportingController extends Controller
                 'checkout_percentage' => $dual['checkout_pct'],
                 'composite_score' => $dual['score'],
                 'performance_level' => $dual['level'],
-                'photo_url' => $emp->photo_url ?? null,
+                'photo' => $emp->profile_photo ?? null,
+                'photo_url' => $emp->profile_photo ? asset('storage/' . $emp->profile_photo) : null,
             ];
 
             $generatedCount++;

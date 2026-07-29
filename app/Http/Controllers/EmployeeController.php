@@ -110,13 +110,19 @@ class EmployeeController extends Controller
                 ->addColumn('office_location_name', function ($row) {
                     return $row->officeLocation?->name ?? '-';
                 })
+                ->editColumn('fullname', function ($row) {
+                    $avatar = $row->profile_photo 
+                        ? '<img src="' . asset('storage/' . $row->profile_photo) . '" class="rounded-circle me-2 shadow-sm" style="width: 34px; height: 34px; object-fit: cover; border: 2px solid #435ebe;">'
+                        : '<span class="avatar avatar-sm bg-primary text-white rounded-circle me-2 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 34px; height: 34px; font-size: 13px; font-weight: bold; border: 2px solid #435ebe;">' . strtoupper(substr($row->fullname, 0, 2)) . '</span>';
+                    return '<div class="d-flex align-items-center">' . $avatar . '<span class="fw-semibold">' . e($row->fullname) . '</span></div>';
+                })
                 ->editColumn('salary', function ($row) use ($user) {
                     if ($user->isAdmin()) {
                         return 'Rp ' . number_format($row->salary, 0, ',', '.');
                     }
                     return '***';
                 })
-                ->rawColumns(['action', 'status_badge', 'employee_status_badge'])
+                ->rawColumns(['fullname', 'action', 'status_badge', 'employee_status_badge'])
                 ->make(true);
         }
         return view('employees.index');
@@ -297,45 +303,44 @@ class EmployeeController extends Controller
         $user = auth()->user();
         $isAdmin = $user->isAdmin();
 
-        // If non-admin, ensure hidden/readonly fields are populated with current data to pass validation
-        if (!$isAdmin) {
-            $request->merge([
-                'salary' => $employee->salary ?? 0,
-                'basic_salary' => $employee->basic_salary ?? 0,
-                'meal_allowance' => $employee->meal_allowance ?? 0,
-                'transport_allowance' => $employee->transport_allowance ?? 0,
-                'position_allowance' => $employee->position_allowance ?? 0,
-                'department_id' => $employee->department_id,
-                'office_location_id' => $employee->office_location_id,
-                'position_id' => $employee->active_position?->id,
-                'role_id' => $employee->role_id,
-                'status' => $employee->status ?? 'active',
-                'employee_status' => $employee->employee_status ?? 'permanent',
-                'working_type' => $employee->working_type ?? 'full_time',
-                'pph21_rate' => $employee->pph21_rate ?? 0,
-                'npwp' => $employee->npwp ?? '00.000.000.0-000.000',
-                'hire_date' => $employee->hire_date ? $employee->hire_date->format('Y-m-d') : now()->format('Y-m-d'),
-            ]);
-        }
+        // Ensure missing or blank fields are populated with existing employee data so updating avatar/profile never fails validation
+        $request->merge([
+            'salary' => $request->filled('salary') ? $request->salary : ($employee->salary ?? 0),
+            'basic_salary' => $request->filled('basic_salary') ? $request->basic_salary : ($employee->basic_salary ?? 0),
+            'meal_allowance' => $request->filled('meal_allowance') ? $request->meal_allowance : ($employee->meal_allowance ?? 0),
+            'transport_allowance' => $request->filled('transport_allowance') ? $request->transport_allowance : ($employee->transport_allowance ?? 0),
+            'position_allowance' => $request->filled('position_allowance') ? $request->position_allowance : ($employee->position_allowance ?? 0),
+            'department_id' => $request->filled('department_id') ? $request->department_id : $employee->department_id,
+            'office_location_id' => $request->filled('office_location_id') ? $request->office_location_id : $employee->office_location_id,
+            'position_id' => $request->filled('position_id') ? $request->position_id : ($employee->position_id ?? $employee->active_position?->id),
+            'role_id' => $request->filled('role_id') ? $request->role_id : $employee->role_id,
+            'status' => $request->filled('status') ? $request->status : ($employee->status ?? 'active'),
+            'employee_status' => $request->filled('employee_status') ? $request->employee_status : ($employee->employee_status ?? 'permanent'),
+            'working_type' => $request->filled('working_type') ? $request->working_type : ($employee->working_type ?? 'full_time'),
+            'pph21_rate' => $request->filled('pph21_rate') ? $request->pph21_rate : ($employee->pph21_rate ?? 0),
+            'npwp' => $request->filled('npwp') ? $request->npwp : ($employee->npwp ?? '00.000.000.0-000.000'),
+            'hire_date' => $request->filled('hire_date') ? $request->hire_date : ($employee->hire_date ? $employee->hire_date->format('Y-m-d') : now()->format('Y-m-d')),
+            'phone_number' => $request->filled('phone_number') ? $request->phone_number : ($employee->phone_number ?? '-'),
+        ]);
 
         $request->validate([
             'nik' => 'required|string|unique:employees,nik,' . $id,
-            'npwp' => 'required|string|unique:employees,npwp,' . $id,
+            'npwp' => 'nullable|string|max:50',
             'fullname' => 'required|string|max:255',
             'email' => 'required|email|unique:employees,email,' . $id,
-            'phone_number' => 'required|string|max:15',
-            'address' => 'required|string',
+            'phone_number' => 'nullable|string|max:30', // Max 30 to support formatted phones with dashes/spaces
+            'address' => 'nullable|string',
             'place_of_birth' => 'nullable|string|max:150',
-            'birth_date' => 'required|date',
-            'hire_date' => 'required|date',
-            'department_id' => 'required|exists:departments,id',
-            'office_location_id' => $isAdmin ? 'required|exists:office_locations,id' : 'nullable|exists:office_locations,id',
-            'role_id' => 'required|exists:roles,id',
+            'birth_date' => 'nullable|date',
+            'hire_date' => 'nullable|date',
+            'department_id' => 'nullable|exists:departments,id',
+            'office_location_id' => 'nullable|exists:office_locations,id',
+            'role_id' => 'nullable|exists:roles,id',
             'supervisor_id' => 'nullable|exists:employees,id',
-            'position_id' => $isAdmin ? 'required|exists:positions,position_id' : 'nullable|exists:positions,position_id',
-            'status' => 'required|string|max:50',
-            'employee_status' => 'required|string|in:permanent,contract,probation,internship',
-            'working_type' => 'required|string|in:full_time,part_time',
+            'position_id' => 'nullable|exists:positions,position_id',
+            'status' => 'nullable|string|max:50',
+            'employee_status' => 'nullable|string|in:permanent,contract,probation,internship',
+            'working_type' => 'nullable|string|in:full_time,part_time',
             'pph21_rate' => 'nullable|numeric|min:0|max:100',
             'education_level_id' => 'nullable|exists:education_levels,education_level_id',
             'gender' => 'nullable|string|max:50',
@@ -366,21 +371,22 @@ class EmployeeController extends Controller
             'documents.*.identity_number' => 'nullable|string|max:255',
             'documents.*.description' => 'nullable|string|max:500',
             'password' => 'nullable|string|min:8|confirmed',
-            'salary' => 'required|numeric',
+            'salary' => 'nullable|numeric',
             'basic_salary' => 'nullable|numeric',
             'meal_allowance' => 'nullable|numeric',
             'transport_allowance' => 'nullable|numeric',
             'position_allowance' => 'nullable|numeric',
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
 
         $oldEmail = $employee->email;
         $oldData = $employee->only(['department_id', 'role_id', 'salary']);
-        $data = $request->except(['supervisor_id']);
+        $data = $request->except(['supervisor_id', '_token', '_method']);
 
         $canEditEducation = true;
 
         // Only allow Admin to update supervisor_id
-        if ($isAdmin) {
+        if ($isAdmin && $request->filled('supervisor_id')) {
             $data['supervisor_id'] = $request->supervisor_id;
         }
 
@@ -397,11 +403,29 @@ class EmployeeController extends Controller
             unset($data['profile_photo']);
         }
 
+        // Sanitize nullable/foreign key empty strings to null or preserve existing values
+        $nullableFks = [
+            'position_id', 'office_location_id', 'department_id', 'role_id',
+            'education_level_id', 'supervisor_id', 'place_of_birth', 'birth_date',
+            'hire_date', 'resign_date', 'permanent_date', 'contract_expiry',
+            'gender', 'religion', 'marital_status'
+        ];
+
+        foreach ($nullableFks as $field) {
+            if (array_key_exists($field, $data)) {
+                if ($data[$field] === '' || $data[$field] === null) {
+                    $data[$field] = $employee->$field ?? null;
+                }
+            }
+        }
+
         $approvalNotice = false;
 
         // Admins apply changes directly
         if ($isAdmin) {
-            $employee->update($data);
+            $employeeFillable = $employee->getFillable();
+            $employeeData = collect($data)->only($employeeFillable)->toArray();
+            $employee->update($employeeData);
 
             // Update password if provided by Admin
             if ($request->filled('password') && $employee->user) {
@@ -596,12 +620,12 @@ class EmployeeController extends Controller
         }
 
         if ($isAdmin) {
-            return redirect()->route('employees.index')->with('success', 'Employee updated successfully.');
+            return redirect()->back()->with('success', 'Data karyawan & Foto Profil berhasil diperbarui.');
         } else {
             if ($approvalNotice) {
                 return redirect()->route('my-profile')->with('success', 'Foto profil & data diri berhasil diperbarui. Perubahan data sensitif (NIK/Nama/Email) telah diajukan ke HR Administrator untuk persetujuan.');
             }
-            return redirect()->route('my-profile')->with('success', 'Profil & Foto Profil berhasil diperbarui.');
+            return redirect()->back()->with('success', 'Profil & Foto Profil berhasil diperbarui.');
         }
     }
 
