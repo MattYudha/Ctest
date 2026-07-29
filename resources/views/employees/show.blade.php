@@ -74,7 +74,7 @@
 
                                 <div class="mb-3">
                                     <label class="text-muted">Department</label>
-                                    <div>{{ $employee->department->name }}</div>
+                                    <div>{{ $employee->department->name ?? '-' }}</div>
                                 </div>
 
                                 <div class="mb-3">

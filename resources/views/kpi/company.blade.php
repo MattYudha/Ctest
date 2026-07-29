@@ -15,13 +15,9 @@
                 </form>
 
                 @if($canGenerate ?? false)
-                <form action="{{ route('reports.generate-kpi') }}" method="POST" class="d-inline">
-                    @csrf
-                    <input type="hidden" name="period" value="{{ $period }}">
-                    <button type="submit" class="btn btn-primary btn-md shadow-sm">
-                        <i class="bi bi-play-circle-fill me-1"></i> {{ ($isGenerated ?? false) ? 'Recalculate KPI' : 'Generate KPI Periode Ini' }}
-                    </button>
-                </form>
+                <button type="button" class="btn btn-primary btn-md shadow-sm" data-bs-toggle="modal" data-bs-target="#confirmRecalculateModal">
+                    <i class="bi bi-play-circle-fill me-1"></i> {{ ($isGenerated ?? false) ? 'Recalculate KPI' : 'Generate KPI Periode Ini' }}
+                </button>
                 @endif
             </div>
         </div>
@@ -51,13 +47,9 @@
                         Penilaian dihitung secara transparan dari <strong>50% Kepatuhan Checkout Presensi</strong> dan <strong>50% Pengisian Log Kerja Harian</strong>.
                     </p>
                     @if($canGenerate ?? false)
-                        <form action="{{ route('reports.generate-kpi') }}" method="POST" class="d-inline">
-                            @csrf
-                            <input type="hidden" name="period" value="{{ $period }}">
-                            <button type="submit" class="btn btn-primary btn-lg px-4 shadow">
-                                <i class="bi bi-play-circle-fill me-2"></i> Generate KPI Periode Ini Sekarang
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-primary btn-lg px-4 shadow" data-bs-toggle="modal" data-bs-target="#confirmRecalculateModal">
+                            <i class="bi bi-play-circle-fill me-2"></i> Generate KPI Periode Ini Sekarang
+                        </button>
                     @else
                         <span class="badge bg-secondary px-3 py-2 fs-6">Menunggu HR Administrator memproses KPI bulan ini</span>
                     @endif
@@ -79,59 +71,232 @@
             </div>
         </div>
 
+<style>
+    /* Aratech Luxury Hall-of-Fame Showcase Theme */
+    .hall-of-fame-card {
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1e1b4b 100%);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 15px 35px rgba(30, 58, 138, 0.25);
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .hall-of-fame-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(30, 58, 138, 0.35);
+    }
+    .hall-of-fame-card::before {
+        content: '';
+        position: absolute;
+        top: -40%;
+        right: -20%;
+        width: 260px;
+        height: 260px;
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .prestige-gold-badge {
+        background: linear-gradient(90deg, #b45309 0%, #f59e0b 50%, #fbbf24 100%);
+        color: #ffffff;
+        font-weight: 800;
+        letter-spacing: 1px;
+        border-radius: 30px;
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .trophy-ring {
+        width: 78px;
+        height: 78px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(254, 243, 199, 0.25) 0%, rgba(245, 158, 11, 0.35) 100%);
+        border: 2px solid rgba(251, 191, 36, 0.6);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
+    }
+    .trophy-ring i {
+        font-size: 2.8rem;
+        color: #fbbf24;
+        filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+    }
+    .score-pill-gold {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(251, 191, 36, 0.4);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    .btn-prestige-gold {
+        background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+        color: #ffffff !important;
+        font-weight: 700;
+        border-radius: 30px;
+        border: none;
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+        transition: all 0.25s ease;
+    }
+    .btn-prestige-gold:hover {
+        background: linear-gradient(90deg, #d97706 0%, #b45309 100%);
+        transform: scale(1.04);
+        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6);
+    }
+    .executive-stat-card {
+        background: #ffffff;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 8px 25px rgba(30, 41, 59, 0.04);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .executive-stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(30, 58, 138, 0.08);
+    }
+    .icon-pill-blue {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: #eff6ff;
+        color: #2563eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+    }
+    .icon-pill-amber {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: #fffbe6;
+        color: #d97706;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+    }
+</style>
+
         <div class="row mb-4">
-            <!-- Best Employee Widget -->
-            <div class="col-md-4">
-                <div class="card bg-gradient-primary text-white h-100 border-0 shadow-sm" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
-                    <div class="card-body text-center p-4">
-                        <span class="badge bg-warning text-dark px-3 py-1 fw-bold text-uppercase mb-3 shadow-sm">
-                            <i class="bi bi-award-fill me-1"></i> Employee of The Month
-                        </span>
-                        <div class="mb-3">
-                            <i class="bi bi-trophy-fill text-warning" style="font-size: 4rem; filter: drop-shadow(0 4px 10px rgba(255,215,0,0.5));"></i>
+            <!-- Best Employee Widget (Luxury Executive Hall-of-Fame) -->
+            <div class="col-lg-5 col-md-12 mb-3 mb-lg-0">
+                <div class="card hall-of-fame-card h-100 border-0">
+                    <div class="card-body text-center p-4 d-flex flex-column justify-content-between">
+                        <div>
+                            <span class="badge prestige-gold-badge px-3 py-2 text-uppercase mb-3 shadow">
+                                <i class="bi bi-trophy-fill me-1"></i> EMPLOYEE OF THE MONTH
+                            </span>
+                            <div class="my-2">
+                                @if($bestEmployee && !empty($bestEmployee['photo']))
+                                    <div class="position-relative d-inline-block">
+                                        <img src="{{ asset('storage/' . $bestEmployee['photo']) }}" alt="{{ $bestEmployee['fullname'] }}" class="rounded-circle shadow-lg" style="width: 82px; height: 82px; object-fit: cover; border: 3.5px solid #fbbf24; box-shadow: 0 0 25px rgba(245, 158, 11, 0.45);" />
+                                        <div style="position: absolute; bottom: -2px; right: -4px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #0f172a; font-size: 0.85rem; box-shadow: 0 2px 8px rgba(0,0,0,0.4);" title="Champion Trophy">
+                                            <i class="bi bi-trophy-fill"></i>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="trophy-ring">
+                                        <i class="bi bi-award-fill"></i>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
+
                         @if($bestEmployee)
-                            <h3 class="text-white fw-bold mb-1">{{ $bestEmployee['fullname'] }}</h3>
-                            <p class="text-light opacity-75 mb-3">{{ $bestEmployee['department'] }} • {{ $bestEmployee['position'] }}</p>
-                            
-                            <div class="bg-white bg-opacity-25 rounded-pill px-4 py-2 d-inline-block shadow-sm mb-3">
-                                <h4 class="mb-0 text-white fw-bold">{{ round($bestEmployee['composite_score'], 2) }} <small class="fs-6 fw-normal">/ 100</small></h4>
+                            <div>
+                                <h3 class="text-white fw-bold mb-1" style="font-size: 1.55rem; letter-spacing: -0.3px;">
+                                    {{ $bestEmployee['fullname'] }}
+                                </h3>
+                                <p class="mb-3" style="color: #93c5fd; font-weight: 500; font-size: 0.92rem;">
+                                    <i class="bi bi-building me-1"></i> {{ $bestEmployee['department'] }} &bull; {{ $bestEmployee['position'] }}
+                                </p>
+
+                                <div class="score-pill-gold rounded-pill px-4 py-2 d-inline-block mb-3">
+                                    <span class="text-warning me-1">★</span>
+                                    <span class="text-white fw-bold fs-5">{{ round($bestEmployee['composite_score'], 2) }}</span>
+                                    <small class="text-white opacity-75 fs-6">/ 100</small>
+                                </div>
                             </div>
 
                             <div>
-                                <a href="{{ route('kpi.show', $bestEmployee['employee_id']) }}?period={{ $period }}" class="btn btn-sm btn-light rounded-pill px-4 fw-bold text-primary shadow-sm">Lihat Profile <i class="bi bi-arrow-right ms-1"></i></a>
+                                <a href="{{ route('kpi.show', $bestEmployee['employee_id']) }}?period={{ $period }}" class="btn btn-prestige-gold rounded-pill px-4 py-2 btn-sm text-decoration-none">
+                                    Lihat Profile & Detail <i class="bi bi-arrow-right-short ms-1 fs-5 align-middle"></i>
+                                </a>
                             </div>
                         @else
-                            <h4 class="text-white mt-4">Data Not Available</h4>
+                            <div class="py-4">
+                                <h5 class="text-white-50 mb-0">Belum Ada Data KPI</h5>
+                            </div>
                         @endif
                     </div>
                 </div>
             </div>
 
-            <!-- Stats Summary -->
-            <div class="col-md-8">
+            <!-- Stats Summary (Total Monitored & Performance Period) -->
+            <div class="col-lg-7 col-md-12">
                 <div class="row h-100">
+                    <!-- Total Employees Monitored Card -->
                     <div class="col-md-6 mb-3 mb-md-0">
-                        <div class="card h-100 border-0 shadow-sm border-left-info">
-                            <div class="card-body d-flex flex-column justify-content-center">
-                                <h6 class="text-info font-weight-bold mb-1">Total Employees Monitored</h6>
-                                <h2 class="mb-0 fw-bold text-dark">{{ count($kpiData) }}</h2>
-                                <small class="text-muted">Active Employees in System</small>
+                        <div class="card h-100 executive-stat-card p-4" style="border-left: 5px solid #2563eb !important;">
+                            <div class="card-body p-0 d-flex flex-column justify-content-between">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="icon-pill-blue">
+                                        <i class="bi bi-people-fill"></i>
+                                    </div>
+                                    <span class="badge px-3 py-1 rounded-pill fw-bold" style="background: #eff6ff; color: #1d4ed8;">
+                                        <i class="bi bi-activity me-1"></i> Active System
+                                    </span>
+                                </div>
+
+                                <div class="my-2">
+                                    <h6 class="fw-bold text-uppercase tracking-wider mb-1" style="font-size: 0.8rem; color: #64748b !important;">
+                                        Total Employees Monitored
+                                    </h6>
+                                    <h1 class="display-4 fw-extrabold mb-0" style="font-size: 2.75rem; color: #1e293b;">
+                                        {{ count($kpiData) }}
+                                    </h1>
+                                </div>
+
+                                <div class="mt-3 pt-3 border-top d-flex align-items-center justify-content-between text-muted" style="font-size: 0.85rem;">
+                                    <span><i class="bi bi-shield-check text-primary me-1"></i> Real-time Monitoring</span>
+                                    <span class="fw-bold text-dark">{{ count($kpiData) }} Karyawan</span>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Performance Period Card -->
                     <div class="col-md-6">
-                        <div class="card h-100 border-0 shadow-sm border-left-success">
-                            <div class="card-body d-flex flex-column justify-content-center">
-                                <h6 class="text-success font-weight-bold mb-1">Performance Period</h6>
-                                <h2 class="mb-0 fw-bold text-dark">{{ $periodFormatted }}</h2>
-                                <small class="text-muted">2-Metric Verified Evaluation</small>
+                        <div class="card h-100 executive-stat-card p-4" style="border-left: 5px solid #f59e0b !important;">
+                            <div class="card-body p-0 d-flex flex-column justify-content-between">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="icon-pill-amber">
+                                        <i class="bi bi-calendar2-check-fill"></i>
+                                    </div>
+                                    <span class="badge px-3 py-1 rounded-pill fw-bold" style="background: #fffbe6; color: #b45309;">
+                                        <i class="bi bi-check2-circle me-1"></i> Verified
+                                    </span>
+                                </div>
+
+                                <div class="my-2">
+                                    <h6 class="fw-bold text-uppercase tracking-wider mb-1" style="font-size: 0.8rem; color: #64748b !important;">
+                                        Performance Period
+                                    </h6>
+                                    <h2 class="fw-extrabold mb-0" style="font-size: 1.85rem; color: #1e293b;">
+                                        {{ $periodFormatted }}
+                                    </h2>
+                                </div>
+
+                                <div class="mt-3 pt-3 border-top d-flex align-items-center justify-content-between text-muted" style="font-size: 0.85rem;">
+                                    <span><i class="bi bi-pie-chart-fill text-warning me-1"></i> Formulasi 2-Metric</span>
+                                    <span class="badge bg-slate-100 text-dark border px-2 py-1" style="background: #f8fafc;">50% + 50%</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </div>   </div>
 
         <!-- Info Note -->
         <div class="row mb-3">
@@ -185,7 +350,16 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <strong class="text-dark">{{ $data['fullname'] }}</strong>
+                                            <div class="d-flex align-items-center gap-2">
+                                                @if(!empty($data['photo']))
+                                                    <img src="{{ asset('storage/' . $data['photo']) }}" alt="{{ $data['fullname'] }}" class="rounded-circle shadow-sm" style="width: 38px; height: 38px; object-fit: cover; border: 2px solid #e2e8f0;" />
+                                                @else
+                                                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary fw-bold d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px; font-size: 0.85rem;">
+                                                        {{ strtoupper(substr($data['fullname'], 0, 1)) }}
+                                                    </div>
+                                                @endif
+                                                <strong class="text-dark">{{ $data['fullname'] }}</strong>
+                                            </div>
                                         </td>
                                         <td>
                                             <div class="fw-bold text-secondary">{{ $data['department'] }}</div>
@@ -265,5 +439,42 @@
         }, 1000);
     });
 </script>
+@endif
+
+@if($canGenerate ?? false)
+<!-- Confirmation Modal for Recalculate KPI -->
+<div class="modal fade" id="confirmRecalculateModal" tabindex="-1" aria-labelledby="confirmRecalculateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="confirmRecalculateModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Konfirmasi {{ ($isGenerated ?? false) ? 'Hitung Ulang (Recalculate)' : 'Generate' }} KPI
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="mb-3">
+                    <i class="bi bi-arrow-repeat text-primary display-3"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Apakah Anda yakin ingin mengkalkulasi ulang data KPI?</h5>
+                <p class="text-muted mb-0">
+                    Proses ini akan menghitung ulang seluruh skor pencapaian absensi dan log kerja harian karyawan untuk periode <strong>{{ $periodFormatted }}</strong>.
+                </p>
+            </div>
+            <div class="modal-footer bg-light border-0 justify-content-center">
+                <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i> Batal
+                </button>
+                <form action="{{ route('reports.generate-kpi') }}" method="POST" class="d-inline">
+                    @csrf
+                    <input type="hidden" name="period" value="{{ $period }}">
+                    <button type="submit" class="btn btn-primary px-4 rounded-pill shadow-sm">
+                        <i class="bi bi-play-circle-fill me-1"></i> Ya, {{ ($isGenerated ?? false) ? 'Hitung Ulang' : 'Generate' }} Sekarang
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 @endif
 @endsection

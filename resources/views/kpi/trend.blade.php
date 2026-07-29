@@ -5,7 +5,7 @@
     <div class="d-flex justify-content-between align-items-center">
         <div>
             <h3>Performance Trend - {{ $employee->fullname }}</h3>
-            <p class="text-muted">{{ $employee->department->name }} • {{ $employee->role?->title }}</p>
+            <p class="text-muted">{{ $employee->department->name ?? '-' }} • {{ $employee->role?->title }}</p>
         </div>
         <div>
             <a href="{{ route('kpi.show', $employee->id) }}" class="btn btn-sm btn-outline-secondary">

@@ -145,16 +145,6 @@
                     <input type="month" name="period" value="{{ $period }}" class="form-control" onchange="this.form.submit()">
                 </form>
 
-                @if($canGenerate ?? false)
-                <form action="{{ route('reports.generate-kpi') }}" method="POST" class="d-inline">
-                    @csrf
-                    <input type="hidden" name="period" value="{{ $period }}">
-                    <button type="submit" class="btn btn-primary btn-md shadow-sm">
-                        <i class="bi bi-play-circle-fill me-1"></i> {{ ($isGenerated ?? false) ? 'Recalculate KPI' : 'Generate KPI Periode Ini' }}
-                    </button>
-                </form>
-                @endif
-
                 <a href="{{ route('reports.export-csv') }}?period={{ $period }}" class="btn btn-success btn-md shadow-sm">
                     <i class="bi bi-download me-1"></i> Export CSV
                 </a>
@@ -192,13 +182,9 @@
                         Penilaian dihitung berdasarkan <strong>Kepatuhan Checkout Presensi</strong> dan <strong>Pengisian Log Kerja Harian</strong>.
                     </p>
                     @if($canGenerate ?? false)
-                        <form action="{{ route('reports.generate-kpi') }}" method="POST" class="d-inline">
-                            @csrf
-                            <input type="hidden" name="period" value="{{ $period }}">
-                            <button type="submit" class="btn btn-primary btn-lg px-4 shadow">
-                                <i class="bi bi-play-circle-fill me-2"></i> Generate KPI Periode Ini Sekarang
-                            </button>
-                        </form>
+                        <a href="{{ route('kpi.company') }}?period={{ $period }}" class="btn btn-primary btn-lg px-4 shadow">
+                            <i class="bi bi-box-arrow-up-right me-2"></i> Buka Company KPI untuk Generate
+                        </a>
                     @else
                         <span class="badge bg-secondary px-3 py-2 fs-6">Menunggu HR Administrator memproses KPI bulan ini</span>
                     @endif

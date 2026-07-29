@@ -41,14 +41,6 @@
                 <button type="button" class="btn btn-success btn-md shadow-sm me-1" data-bs-toggle="modal" data-bs-target="#manageDepartmentModal">
                     <i class="bi bi-building-add me-1"></i> + Buat / Kelola Dept
                 </button>
-
-                <form action="{{ route('reports.generate-kpi') }}" method="POST" class="d-inline">
-                    @csrf
-                    <input type="hidden" name="period" value="{{ $period }}">
-                    <button type="submit" class="btn btn-primary btn-md shadow-sm">
-                        <i class="bi bi-play-circle-fill me-1"></i> {{ ($isGenerated ?? false) ? 'Recalculate KPI' : 'Generate KPI Periode Ini' }}
-                    </button>
-                </form>
                 @endif
             </div>
         </div>
@@ -82,13 +74,9 @@
                         Penilaian dihitung transparan dari <strong>50% Kepatuhan Checkout Presensi</strong> dan <strong>50% Pengisian Log Kerja Harian</strong>.
                     </p>
                     @if($canGenerate ?? false)
-                        <form action="{{ route('reports.generate-kpi') }}" method="POST" class="d-inline">
-                            @csrf
-                            <input type="hidden" name="period" value="{{ $period }}">
-                            <button type="submit" class="btn btn-primary btn-lg px-4 shadow">
-                                <i class="bi bi-play-circle-fill me-2"></i> Generate KPI Periode Ini Sekarang
-                            </button>
-                        </form>
+                        <a href="{{ route('kpi.company') }}?period={{ $period }}" class="btn btn-primary btn-lg px-4 shadow">
+                            <i class="bi bi-box-arrow-up-right me-2"></i> Buka Company KPI untuk Generate
+                        </a>
                     @else
                         <span class="badge bg-secondary px-3 py-2 fs-6">Menunggu HR Administrator memproses KPI bulan ini</span>
                     @endif

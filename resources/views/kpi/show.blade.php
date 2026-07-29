@@ -5,7 +5,7 @@
     <div class="d-flex justify-content-between align-items-center">
         <div>
             <h3>KPI Report - {{ $employee->fullname }}</h3>
-            <p class="text-muted">{{ $employee->department->name }} • {{ $employee->role?->title }}</p>
+            <p class="text-muted">{{ $employee->department->name ?? '-' }} • {{ $employee->role?->title }}</p>
         </div>
         <div>
             @if(in_array(session('role'), [\App\Constants\Roles::MASTER_ADMIN, \App\Constants\Roles::HR_ADMINISTRATOR]))

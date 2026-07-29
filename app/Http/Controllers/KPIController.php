@@ -343,14 +343,22 @@ class KPIController extends Controller
 
         $memberIds = $request->input('member_ids', []);
 
-        // Unassign previous members of this department who were not checked
-        Employee::where('department_id', $deptId)
-            ->whereNotIn('id', $memberIds)
-            ->update(['department_id' => null]);
+        try {
+            // Find fallback department for unassigned members if NOT NULL constraint exists
+            $fallbackDept = \App\Models\Department::where('id', '!=', $deptId)->first();
 
-        // Assign checked members to this department
-        if (!empty($memberIds)) {
-            Employee::whereIn('id', $memberIds)->update(['department_id' => $deptId]);
+            if ($fallbackDept) {
+                Employee::where('department_id', $deptId)
+                    ->whereNotIn('id', $memberIds)
+                    ->update(['department_id' => $fallbackDept->id]);
+            }
+
+            // Assign checked members to this department
+            if (!empty($memberIds)) {
+                Employee::whereIn('id', $memberIds)->update(['department_id' => $deptId]);
+            }
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal memperbarui departemen: ' . $e->getMessage());
         }
 
         $period = $request->input('period', now()->format('Y-m'));
@@ -371,18 +379,31 @@ class KPIController extends Controller
         }
 
         $department = \App\Models\Department::findOrFail($departmentId);
-
-        // Reset department_id to null for all members of this department
-        Employee::where('department_id', $departmentId)->update(['department_id' => null]);
-
-        // Delete the department record
         $departmentName = $department->name;
-        $department->delete();
+
+        try {
+            // Find another active department or create an "Unassigned" fallback department
+            $fallbackDept = \App\Models\Department::where('id', '!=', $departmentId)->first();
+            if (!$fallbackDept) {
+                $fallbackDept = \App\Models\Department::firstOrCreate(
+                    ['name' => 'Unassigned'],
+                    ['status' => 'Active', 'description' => 'Departemen penampung sementara']
+                );
+            }
+
+            // Reassign members of this department to fallback department
+            Employee::where('department_id', $departmentId)->update(['department_id' => $fallbackDept->id]);
+
+            // Delete the department record
+            $department->delete();
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menghapus departemen: ' . $e->getMessage());
+        }
 
         $period = $request->input('period', now()->format('Y-m'));
 
         return redirect()->route('kpi.department', ['period' => $period, 'department_id' => 'all'])
-            ->with('success', "Departemen {$departmentName} berhasil dihapus!");
+            ->with('success', "Departemen {$departmentName} berhasil dihapus! Karyawan telah dipindahkan ke departemen {$fallbackDept->name}.");
     }
 
     /**
