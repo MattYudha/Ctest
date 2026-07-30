@@ -148,6 +148,8 @@
 @endsection
 
 @push ('scripts')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js"></script>
     <script>
         // === capture active user data from php to javascript ===
@@ -231,6 +233,21 @@
                 }
             });
 
+            // Handle hiding/showing lokasi_kantor based on tipe_kehadiran_kerja
+            $(document).on('change', 'select[name="dynamic_tags[tipe_kehadiran_kerja]"]', function() {
+                let val = $(this).val();
+                let $lokasiInput = $('[name="dynamic_tags[lokasi_kantor]"]');
+                let $lokasiContainer = $lokasiInput.closest('.mb-3');
+                
+                if (val && val.toUpperCase() !== 'WFO') {
+                    $lokasiContainer.hide();
+                    $lokasiInput.removeAttr('required');
+                } else {
+                    $lokasiContainer.show();
+                    $lokasiInput.attr('required', true);
+                }
+            });
+
             $('#letter_template_id').on('change', function () {
                 let templateId = $(this).val();
                 let container = $('#dynamic-tags-container');
@@ -291,6 +308,8 @@
                                         inputElement = `<textarea name="dynamic_tags[${tag.tag_name}]" class="form-control" rows="4" required ${isReadOnly}>${defaultValue}</textarea>`;
                                     } else if (tag.input_type === 'date') {
                                         inputElement = `<input type="date" name="dynamic_tags[${tag.tag_name}]" class="form-control" value="${defaultValue}" required ${isReadOnly}>`;
+                                    } else if (tag.input_type === 'multiple_date') {
+                                        inputElement = `<input type="text" name="dynamic_tags[${tag.tag_name}]" class="form-control flatpickr-multiple" value="${defaultValue}" required ${isReadOnly} placeholder="Select dates...">`;
                                     } else if (tag.input_type === 'time') {
                                         inputElement = `<input type="time" name="dynamic_tags[${tag.tag_name}]" class="form-control" value="${defaultValue}" required ${isReadOnly}>`;
                                     } else if (tag.input_type === 'number') {
@@ -332,6 +351,17 @@
                                     `;
                                     container.append(html);
                                 });
+                                
+                                // Initialize Flatpickr for multiple dates
+                                flatpickr('.flatpickr-multiple', {
+                                    mode: 'multiple',
+                                    dateFormat: 'Y-m-d',
+                                });
+
+                                // Trigger change for tipe_kehadiran_kerja to set initial visibility
+                                setTimeout(() => {
+                                    $('select[name="dynamic_tags[tipe_kehadiran_kerja]"]').trigger('change');
+                                }, 50);
                             }
                         },
                         error: function () {
