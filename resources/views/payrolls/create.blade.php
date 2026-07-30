@@ -889,11 +889,14 @@
                                         <small class="text-muted">Work From Anywhere</small>
                                     </div>
                                 </div>
-                                <span
-                                    class="badge bg-primary bg-opacity-10 text-primary rounded-3 px-4 py-2 fs-6 fw-semibold"
-                                    id="breakdown_wfa"
-                                    >0 Days</span
-                                >
+                                <div class="text-end">
+                                    <span
+                                        class="badge bg-primary bg-opacity-10 text-primary rounded-3 px-4 py-2 fs-6 fw-semibold d-block"
+                                        id="breakdown_wfa"
+                                        >0 Days</span
+                                    >
+                                    <small id="breakdown_leave" class="d-none text-primary mt-1 fw-bold" style="font-size: 0.75rem;"><i class="bi bi-info-circle"></i> Inc. <span id="val_leave">0</span> leave</small>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1200,6 +1203,14 @@
                                 document.getElementById('breakdown_wfo').innerText = (d.wfo_count || 0) + ' Days';
                                 document.getElementById('breakdown_wfh').innerText = (d.wfh_count || 0) + ' Days';
                                 document.getElementById('breakdown_wfa').innerText = (d.wfa_count || 0) + ' Days';
+                                if (d.surat_cuti_count && d.surat_cuti_count > 0) {
+                                    document.getElementById('breakdown_leave').classList.remove('d-none');
+                                    document.getElementById('breakdown_leave').classList.add('d-block');
+                                    document.getElementById('val_leave').innerText = d.surat_cuti_count;
+                                } else {
+                                    document.getElementById('breakdown_leave').classList.add('d-none');
+                                    document.getElementById('breakdown_leave').classList.remove('d-block');
+                                }
                                 document.getElementById('breakdown_total').innerText = (d.days_present || 0) + ' Days';
 
                                 document.getElementById('lbl_working_type').innerText = d.employee_working_type

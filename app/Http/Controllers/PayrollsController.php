@@ -469,7 +469,7 @@ class PayrollsController extends Controller
                 $isWeekend = Carbon::parse($p->date)->isWeekend();
 
                 // Hanya lolos kalau BUKAN weekend, BUKAN libur, dan BUKAN bolos murni
-                return !$isWeekend && !in_array($dateString, $holidayDates) && !is_null($p->check_in);
+                return !$isWeekend && !in_array($dateString, $holidayDates) && (!is_null($p->check_in) || $p->status === 'leave');
             })
             ->unique(function ($item) {
                 // Pastikan 1 hari cuma dihitung 1 absen (cegah karyawan tap 2x)
@@ -493,6 +493,7 @@ class PayrollsController extends Controller
         $wfoCount = $presences->filter(fn($p) => strtolower($p->work_type) === 'wfo')->count();
         $wfhCount = $presences->filter(fn($p) => strtolower($p->work_type) === 'wfh')->count();
         $wfaCount = $presences->filter(fn($p) => strtolower($p->work_type) === 'wfa')->count();
+        $suratCutiCount = $presences->filter(fn($p) => $p->status === 'leave')->count();
 
         // Hitung keterlambatan dari data absen yang valid aja
         $lateCount = $presences->where('is_late', true)->count();
@@ -632,6 +633,7 @@ class PayrollsController extends Controller
                 'wfo_count' => $wfoCount,
                 'wfh_count' => $wfhCount,
                 'wfa_count' => $wfaCount,
+                'surat_cuti_count' => $suratCutiCount,
 
                 'late_deduction' => $lateDeduction,
                 'absent_deduction' => round($absentDeduction),
