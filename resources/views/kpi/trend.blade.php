@@ -152,7 +152,8 @@
             <div class="d-flex justify-content-end align-items-center gap-2">
                 <form method="GET" class="d-flex align-items-center gap-2" id="timeRangeForm">
                     <label class="fw-bold text-dark mb-0 me-1">Range: </label>
-                    <select name="months" class="form-select form-select-sm" style="width: 160px;" onchange="this.form.submit()">
+                    <select name="months" class="form-select form-select-sm" style="width: 175px;" onchange="this.form.submit()">
+                        <option value="1" {{ $months == 1 ? 'selected' : '' }}>1 Month (Bulan Ini)</option>
                         <option value="3" {{ $months == 3 ? 'selected' : '' }}>Last 3 Months</option>
                         <option value="6" {{ $months == 6 ? 'selected' : '' }}>Last 6 Months</option>
                         <option value="9" {{ $months == 9 ? 'selected' : '' }}>Last 9 Months</option>
@@ -190,9 +191,19 @@
             <div class="col-12 col-md-4 mb-3">
                 <div class="stat-tile-soft h-100 d-flex align-items-center justify-content-between">
                     <div>
-                        <small class="text-muted fw-bold text-uppercase" style="font-size: 0.78rem;">Average Composite Score</small>
+                        <small class="text-muted fw-bold text-uppercase" style="font-size: 0.78rem;">Rata-Rata Skor Komposisi</small>
                         <h2 class="mb-0 fw-extrabold text-dark mt-1">{{ round($avgScore, 1) }}<span class="fs-6 text-muted"> /100</span></h2>
-                        <small class="text-muted">Over last {{ $months }} months</small>
+                        <div class="mt-2">
+                            @if($months == 1)
+                                <small class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1 fw-bold" style="font-size: 0.73rem;">
+                                    <i class="bi bi-calculator me-1"></i> Nilai 1 Bulan Ini (Dibagi 1)
+                                </small>
+                            @else
+                                <small class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1 fw-bold" style="font-size: 0.73rem;">
+                                    <i class="bi bi-calculator me-1"></i> Rata-Rata {{ count($scores) }} Bulan (Total ÷ {{ count($scores) }})
+                                </small>
+                            @endif
+                        </div>
                     </div>
                     <div class="badge-soft-sky rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
                         <i class="bi bi-speedometer2 fs-4"></i>

@@ -886,8 +886,8 @@ class KPIController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        $months = (int) $request->input('months', 6); // Default 6 months, max 12
-        $months = min($months, 12);
+        $months = (int) $request->input('months', 6); // Default 6 months, min 1, max 12
+        $months = max(1, min($months, 12));
         
         $trendData = [];
         $categories = [];

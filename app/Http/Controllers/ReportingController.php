@@ -372,7 +372,7 @@ class ReportingController extends Controller
         }
 
         $months = (int) request('months', 6);
-        $months = min(max($months, 3), 12);
+        $months = max(1, min($months, 12));
 
         $trendData = [];
         for ($i = $months - 1; $i >= 0; $i--) {
