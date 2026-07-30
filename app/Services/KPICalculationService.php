@@ -164,7 +164,12 @@ class KPICalculationService
         // Get unique dates where a log was submitted
         $uniqueLogDaysCount = \App\Models\WorkLog::where('employee_id', $this->employee->id)
             ->whereBetween('log_date', [$startDate->format('Y-m-d'), $calcEndDate->format('Y-m-d')])
-            ->pluck('log_date')
+            ->get()
+            ->map(function ($log) {
+                return $log->log_date instanceof \Carbon\Carbon 
+                    ? $log->log_date->format('Y-m-d') 
+                    : \Carbon\Carbon::parse($log->log_date)->format('Y-m-d');
+            })
             ->unique()
             ->count();
 
@@ -219,6 +224,9 @@ class KPICalculationService
             'log_pct' => $logPct,
             'score' => $compositeScore,
             'level' => $level,
+            'working_days' => $logMetrics['expected_working_days'] ?? $checkoutMetrics['expected_working_days'] ?? 20,
+            'unique_log_days' => $logMetrics['unique_log_days'] ?? 0,
+            'checkout_count' => $checkoutMetrics['checkout_count'] ?? 0,
         ];
     }
 

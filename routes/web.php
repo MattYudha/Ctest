@@ -440,6 +440,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('kpi.store')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::get('kpi/employee/{id}', [KPIController::class, 'show'])->name('kpi.show');
+    Route::post('kpi/employee/{id}/sync', [KPIController::class, 'syncEmployeeMetrics'])->name('kpi.sync-employee');
     Route::get('kpi/trend/{id}', [KPIController::class, 'trend'])->name('kpi.trend');
     Route::get('kpi/team', [KPIController::class, 'team'])
         ->name('kpi.team')
@@ -480,12 +481,9 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['role:Manager / Unit Head,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::delete('kpi/record/{id}', [KPIController::class, 'destroy'])->name('kpi.destroy-record');
 
-    // KPI Admin Manual Edit (Master Admin / HR Administrator only)
-    Route::get('kpi/{employee}/records/{record}/admin-edit', [KPIController::class, 'adminEdit'])
-        ->name('kpi.admin-edit')
-        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
-    Route::put('kpi/{employee}/records/{record}/admin-edit', [KPIController::class, 'adminUpdate'])
-        ->name('kpi.admin-update')
+    // HR Dispensation & Notes
+    Route::post('kpi/records/{record}/hr-note', [KPIController::class, 'storeHRNote'])
+        ->name('kpi.hr-note')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
 
     // Master KPI Management
@@ -511,6 +509,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('reports.generate-kpi')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::get('reports/{id}/export-pdf', [ReportingController::class, 'exportPDF'])->name('reports.export-pdf');
+    Route::get('reports/{id}/export-trend-pdf', [ReportingController::class, 'exportTrendPDF'])->name('reports.export-trend-pdf');
     Route::get('reports/export-csv', [ReportingController::class, 'exportCSV'])
         ->name('reports.export-csv')
         ->middleware(['role:Manager / Unit Head,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);

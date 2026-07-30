@@ -106,6 +106,7 @@ class ReportingController extends Controller
             'best_employee' => $sortedData[0] ?? null,
         ];
 
+        \Illuminate\Support\Facades\Cache::forget('company_kpi_dashboard_data');
         \Illuminate\Support\Facades\Cache::put('company_kpi_dashboard_data', $cacheData, 86400 * 30);
 
         return redirect()->back()->with('success', "KPI Periode {$period} berhasil digenerate untuk {$generatedCount} karyawan!");
@@ -352,6 +353,72 @@ class ReportingController extends Controller
                   ->setOption('margin-bottom', 0);
 
         return $pdf->download('KPI_Report_' . str_replace(' ', '_', $employee->fullname) . '_' . $period . '.pdf');
+    }
+
+    /**
+     * Export KPI Trend Report to PDF
+     */
+    public function exportTrendPDF($id)
+    {
+        $user = Auth::user();
+        $employee = Employee::with(['department', 'role', 'supervisor'])->findOrFail($id);
+        $config = LetterConfiguration::first() ?: new LetterConfiguration([
+            'company_name' => 'ARATECHNOLOGY',
+            'company_address' => 'Jakarta, Indonesia',
+        ]);
+
+        if (($user->employee?->id ?? null) !== $employee->id && !in_array(session('role'), [\App\Constants\Roles::MASTER_ADMIN, \App\Constants\Roles::HR_ADMINISTRATOR, 'Manager / Unit Head'])) {
+            abort(403, 'Unauthorized');
+        }
+
+        $months = (int) request('months', 6);
+        $months = min(max($months, 3), 12);
+
+        $trendData = [];
+        for ($i = $months - 1; $i >= 0; $i--) {
+            $period = now()->subMonths($i)->format('Y-m');
+            
+            $dual = \App\Services\KPICalculationService::calculateDualMetricsForEmployee($employee, $period);
+            
+            $record = EmployeeKPIRecord::where('employee_id', $employee->id)
+                ->where('period', $period)
+                ->first();
+
+            $score = $record ? $record->composite_score : $dual['score'];
+            $level = $record ? $record->performance_level : $dual['level'];
+
+            if ($employee->hire_date && \Carbon\Carbon::createFromFormat('Y-m', $period)->endOfMonth()->isBefore($employee->hire_date)) {
+                $score = 0;
+                $level = 'na';
+            }
+
+            $trendData[] = [
+                'period' => $period,
+                'period_label' => \Carbon\Carbon::createFromFormat('Y-m', $period)->format('M Y'),
+                'composite_score' => round($score, 2),
+                'performance_level' => $level,
+                'checkout_pct' => $dual['checkout_pct'],
+                'log_pct' => $dual['log_pct'],
+                'working_days' => $dual['working_days'],
+                'log_count' => $dual['unique_log_days'],
+            ];
+        }
+
+        $scores = array_column($trendData, 'composite_score');
+        $avgScore = count($scores) > 0 ? array_sum($scores) / count($scores) : 0;
+        $firstScore = $scores[0] ?? 0;
+        $lastScore = end($scores) ?: 0;
+        $delta = $lastScore - $firstScore;
+        $latestLevel = end($trendData)['performance_level'] ?? 'na';
+
+        $pdf = Pdf::loadView('reports/kpi-trend-pdf', compact(
+            'employee', 'config', 'months', 'trendData', 'avgScore', 'delta', 'latestLevel', 'lastScore'
+        ))
+        ->setPaper('a4', 'portrait')
+        ->setOption('margin-top', 10)
+        ->setOption('margin-bottom', 10);
+
+        return $pdf->download('KPI_Trend_Report_' . str_replace(' ', '_', $employee->fullname) . '_' . $months . 'M.pdf');
     }
 
     /**

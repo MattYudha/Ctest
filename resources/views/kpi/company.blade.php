@@ -175,6 +175,177 @@
         justify-content: center;
         font-size: 1.4rem;
     }
+
+    /* ══ DARK MODE COMPATIBILITY & ULTRA READABILITY ══ */
+    body.theme-dark .text-dark,
+    [data-bs-theme="dark"] .text-dark,
+    .theme-dark .text-dark {
+        color: #f1f5f9 !important;
+    }
+    body.theme-dark .text-muted,
+    [data-bs-theme="dark"] .text-muted,
+    .theme-dark .text-muted {
+        color: #94a3b8 !important;
+    }
+    body.theme-dark h1, [data-bs-theme="dark"] h1,
+    body.theme-dark h2, [data-bs-theme="dark"] h2,
+    body.theme-dark h3, [data-bs-theme="dark"] h3,
+    body.theme-dark h4, [data-bs-theme="dark"] h4,
+    body.theme-dark h5, [data-bs-theme="dark"] h5,
+    body.theme-dark h6, [data-bs-theme="dark"] h6 {
+        color: #f8fafc !important;
+    }
+    body.theme-dark .executive-stat-card,
+    [data-bs-theme="dark"] .executive-stat-card,
+    .theme-dark .executive-stat-card {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+    }
+    body.theme-dark .executive-stat-card h1,
+    body.theme-dark .executive-stat-card h2,
+    [data-bs-theme="dark"] .executive-stat-card h1,
+    [data-bs-theme="dark"] .executive-stat-card h2 {
+        color: #f8fafc !important;
+    }
+    body.theme-dark .icon-pill-blue,
+    [data-bs-theme="dark"] .icon-pill-blue {
+        background: #1e3a8a !important;
+        color: #93c5fd !important;
+    }
+    body.theme-dark .icon-pill-amber,
+    [data-bs-theme="dark"] .icon-pill-amber {
+        background: #78350f !important;
+        color: #fde047 !important;
+    }
+    body.theme-dark .card-header.bg-white,
+    [data-bs-theme="dark"] .card-header.bg-white,
+    .theme-dark .card-header.bg-white,
+    body.theme-dark .card-header,
+    [data-bs-theme="dark"] .card-header {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+        border-bottom: 1px solid #334155 !important;
+    }
+    body.theme-dark .card,
+    [data-bs-theme="dark"] .card,
+    .theme-dark .card {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+    }
+    body.theme-dark .alert-info,
+    [data-bs-theme="dark"] .alert-info {
+        background-color: #1e1b4b !important;
+        color: #c7d2fe !important;
+        border-left: 5px solid #6366f1 !important;
+    }
+    body.theme-dark .alert-info strong,
+    [data-bs-theme="dark"] .alert-info strong,
+    body.theme-dark .alert-info .text-dark,
+    [data-bs-theme="dark"] .alert-info .text-dark {
+        color: #e0e7ff !important;
+    }
+    body.theme-dark .alert-primary,
+    [data-bs-theme="dark"] .alert-primary {
+        background-color: #1e3a8a !important;
+        color: #bfdbfe !important;
+        border-color: #2563eb !important;
+    }
+    body.theme-dark .table,
+    [data-bs-theme="dark"] .table {
+        color: #f1f5f9 !important;
+    }
+    body.theme-dark .table th,
+    [data-bs-theme="dark"] .table th {
+        background-color: #0f172a !important;
+        color: #cbd5e1 !important;
+        border-color: #334155 !important;
+    }
+    body.theme-dark .table td,
+    [data-bs-theme="dark"] .table td {
+        border-color: #334155 !important;
+        color: #f1f5f9 !important;
+    }
+    body.theme-dark .table-hover tbody tr:hover,
+    [data-bs-theme="dark"] .table-hover tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    body.theme-dark .form-control,
+    [data-bs-theme="dark"] .form-control {
+        background-color: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+    }
+    body.theme-dark label,
+    [data-bs-theme="dark"] label {
+        color: #f1f5f9 !important;
+    }
+
+    .kpi-metric-badge {
+        background-color: #f1f5f9;
+        color: #334155;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 8px;
+    }
+    body.theme-dark .kpi-metric-badge,
+    [data-bs-theme="dark"] .kpi-metric-badge,
+    .theme-dark .kpi-metric-badge {
+        background-color: #0f172a !important;
+        background: #0f172a !important;
+        color: #f1f5f9 !important;
+        border-color: #334155 !important;
+    }
+    body.theme-dark .badge.bg-light,
+    [data-bs-theme="dark"] .badge.bg-light,
+    .theme-dark .badge.bg-light {
+        background-color: #0f172a !important;
+        background: #0f172a !important;
+        color: #f1f5f9 !important;
+        border-color: #334155 !important;
+    }
+
+    /* Soft Pastel Score Badges */
+    .score-excellent {
+        background-color: #d1fae5 !important;
+        color: #065f46 !important;
+        border: 1px solid #a7f3d0 !important;
+    }
+    .score-good {
+        background-color: #e0f2fe !important;
+        color: #0369a1 !important;
+        border: 1px solid #bae6fd !important;
+    }
+    .score-satisfactory {
+        background-color: #fef3c7 !important;
+        color: #92400e !important;
+        border: 1px solid #fde68a !important;
+    }
+    .score-unsatisfactory {
+        background-color: #ffe4e6 !important;
+        color: #9f1239 !important;
+        border: 1px solid #fecdd3 !important;
+    }
+
+    body.theme-dark .score-excellent, [data-bs-theme="dark"] .score-excellent {
+        background-color: rgba(16, 185, 129, 0.18) !important;
+        color: #6ee7b7 !important;
+        border-color: rgba(16, 185, 129, 0.35) !important;
+    }
+    body.theme-dark .score-good, [data-bs-theme="dark"] .score-good {
+        background-color: rgba(2, 132, 199, 0.18) !important;
+        color: #7dd3fc !important;
+        border-color: rgba(2, 132, 199, 0.35) !important;
+    }
+    body.theme-dark .score-satisfactory, [data-bs-theme="dark"] .score-satisfactory {
+        background-color: rgba(245, 158, 11, 0.18) !important;
+        color: #fcd34d !important;
+        border-color: rgba(245, 158, 11, 0.35) !important;
+    }
+    body.theme-dark .score-unsatisfactory, [data-bs-theme="dark"] .score-unsatisfactory {
+        background-color: rgba(244, 63, 94, 0.18) !important;
+        color: #fda4af !important;
+        border-color: rgba(244, 63, 94, 0.35) !important;
+    }
 </style>
 
         <div class="row mb-4">
@@ -366,10 +537,10 @@
                                             <small class="text-muted">{{ $data['position'] }}</small>
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge bg-light text-dark border">{{ $data['working_days'] ?? '-' }} Days</span>
+                                            <span class="badge kpi-metric-badge border">{{ $data['working_days'] ?? '-' }} Days</span>
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge bg-light text-dark border">{{ $data['log_count'] ?? '-' }} Logs</span>
+                                            <span class="badge kpi-metric-badge border">{{ $data['log_count'] ?? '-' }} Logs</span>
                                         </td>
                                         <td>
                                             <div class="d-flex align-items-center gap-2">
