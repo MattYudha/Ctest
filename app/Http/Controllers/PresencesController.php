@@ -899,6 +899,8 @@ class PresencesController extends Controller
         foreach ($presences as $p) {
             $date = Carbon::parse($p->date)->format('Y-m-d');
             $status = $p->status;
+            
+            $displayName = !$selectedEmployeeId && $isAdmin ? $p->employee->fullname . ': ' : '';
 
             if ($selectedEmployeeId && $status !== 'absent') {
                 $presenceDates[] = $date;
@@ -921,6 +923,23 @@ class PresencesController extends Controller
                     ($p->check_out ? Carbon::parse($p->check_out)->format('H:i') : '...');
                 $color = $p->is_late ? '#ffc107' : '#198754'; // yellow (late) or green (on time)
                 $textColor = $p->is_late ? '#000' : '#fff';
+                
+                $workTypeStr = strtoupper($p->work_type ?? 'WFO');
+                $wtColor = match($workTypeStr) {
+                    'WFO' => '#0d6efd',
+                    'WFH' => '#6c757d',
+                    'WFA' => '#212529',
+                    default => '#0d6efd',
+                };
+                
+                $events[] = [
+                    'title' => $displayName . $workTypeStr,
+                    'start' => $date,
+                    'color' => $wtColor,
+                    'textColor' => '#fff',
+                    'allDay' => true,
+                    'url' => route('presences.show', $p->id),
+                ];
             } elseif ($status === 'leave') {
                 $summary['leave']++;
                 $titleStr = 'Leave';
@@ -934,8 +953,6 @@ class PresencesController extends Controller
                 $textColor = '#fff';
                 $presenceDates[] = $date;
             }
-
-            $displayName = !$selectedEmployeeId && $isAdmin ? $p->employee->fullname . ': ' : '';
 
             $events[] = [
                 'title' => $displayName . $titleStr,
