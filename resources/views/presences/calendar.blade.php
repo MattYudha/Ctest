@@ -175,6 +175,30 @@
                                     ></span>
                                     Leave
                                 </div>
+
+                                <div class="vr d-none d-md-block mx-1"></div>
+
+                                <div class="d-flex align-items-center">
+                                    <span
+                                        class="d-inline-block rounded-circle me-2 shadow-sm"
+                                        style="width: 14px; height: 14px; background: #0d6efd"
+                                    ></span>
+                                    WFO
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <span
+                                        class="d-inline-block rounded-circle me-2 shadow-sm"
+                                        style="width: 14px; height: 14px; background: #6c757d"
+                                    ></span>
+                                    WFH
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <span
+                                        class="d-inline-block rounded-circle me-2 shadow-sm"
+                                        style="width: 14px; height: 14px; background: #212529"
+                                    ></span>
+                                    WFA
+                                </div>
                             </div>
 
                             <div id="fullcalendar" class="mt-2"></div>
