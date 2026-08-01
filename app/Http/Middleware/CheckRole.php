@@ -50,9 +50,10 @@ class CheckRole
             abort(403, 'No role assigned to employee');
         }
 
-        // Store in session for backward compatibility
-        $request->session()->put('role', $employee->role->title);
-        $request->session()->put('employee_id', $employee->id);
+        // Master Admin & Super Admin always have full access to all protected routes
+        if ($user->isMasterAdmin()) {
+            return $next($request);
+        }
 
         $checkRoles = array_map('trim', $roles);
         

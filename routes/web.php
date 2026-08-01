@@ -113,9 +113,31 @@ Route::middleware(['auth'])->group(function () {
     Route::post('employees/{employee}/reset-device', [EmployeeController::class, 'resetDevice'])
         ->name('employees.reset-device')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
-    Route::resource('employees', EmployeeController::class)->middleware([
-        'role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN,
-    ]);
+
+    Route::get('employees', [EmployeeController::class, 'index'])
+        ->name('employees.index')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+
+    Route::get('employees/create', [EmployeeController::class, 'create'])
+        ->name('employees.create')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+
+    Route::post('employees', [EmployeeController::class, 'store'])
+        ->name('employees.store')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+
+    Route::delete('employees/{employee}', [EmployeeController::class, 'destroy'])
+        ->name('employees.destroy')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+
+    Route::get('employees/{employee}', [EmployeeController::class, 'show'])
+        ->name('employees.show');
+
+    Route::get('employees/{employee}/edit', [EmployeeController::class, 'edit'])
+        ->name('employees.edit');
+
+    Route::put('employees/{employee}', [EmployeeController::class, 'update'])
+        ->name('employees.update');
     Route::post('employees/{employee}/documents', [DocumentController::class, 'store'])
         ->name('employees.documents.store')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
@@ -418,13 +440,26 @@ Route::middleware(['auth'])->group(function () {
         ->name('kpi.store')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::get('kpi/employee/{id}', [KPIController::class, 'show'])->name('kpi.show');
+    Route::post('kpi/employee/{id}/sync', [KPIController::class, 'syncEmployeeMetrics'])->name('kpi.sync-employee');
     Route::get('kpi/trend/{id}', [KPIController::class, 'trend'])->name('kpi.trend');
     Route::get('kpi/team', [KPIController::class, 'team'])
         ->name('kpi.team')
         ->middleware(['role:Manager / Unit Head,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+    Route::post('kpi/team/assign', [KPIController::class, 'assignTeam'])
+        ->name('kpi.team.assign')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+    Route::post('kpi/team/delete/{supervisorId}', [KPIController::class, 'deleteTeam'])
+        ->name('kpi.team.delete')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::get('kpi/department', [KPIController::class, 'department'])
         ->name('kpi.department')
         ->middleware(['role:Manager / Unit Head,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+    Route::post('kpi/department/assign', [KPIController::class, 'assignDepartment'])
+        ->name('kpi.department.assign')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+    Route::post('kpi/department/delete/{departmentId}', [KPIController::class, 'deleteDepartment'])
+        ->name('kpi.department.delete')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::get('kpi/company', [KPIController::class, 'companyDashboard'])
         ->name('kpi.company')
         ->middleware(['role:Administrator,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
@@ -446,12 +481,9 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['role:Manager / Unit Head,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::delete('kpi/record/{id}', [KPIController::class, 'destroy'])->name('kpi.destroy-record');
 
-    // KPI Admin Manual Edit (Master Admin / HR Administrator only)
-    Route::get('kpi/{employee}/records/{record}/admin-edit', [KPIController::class, 'adminEdit'])
-        ->name('kpi.admin-edit')
-        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
-    Route::put('kpi/{employee}/records/{record}/admin-edit', [KPIController::class, 'adminUpdate'])
-        ->name('kpi.admin-update')
+    // HR Dispensation & Notes
+    Route::post('kpi/records/{record}/hr-note', [KPIController::class, 'storeHRNote'])
+        ->name('kpi.hr-note')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
 
     // Master KPI Management
@@ -473,7 +505,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('reports/executive', [ReportingController::class, 'executiveDashboard'])
         ->name('reports.executive')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+    Route::post('reports/generate-kpi', [ReportingController::class, 'generateMonthlyKPI'])
+        ->name('reports.generate-kpi')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::get('reports/{id}/export-pdf', [ReportingController::class, 'exportPDF'])->name('reports.export-pdf');
+    Route::get('reports/{id}/export-trend-pdf', [ReportingController::class, 'exportTrendPDF'])->name('reports.export-trend-pdf');
     Route::get('reports/export-csv', [ReportingController::class, 'exportCSV'])
         ->name('reports.export-csv')
         ->middleware(['role:Manager / Unit Head,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);

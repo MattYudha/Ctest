@@ -496,11 +496,6 @@ body.modal-open {
         <p class="kpi-page-subtitle">Monitoring and managing your performance metrics for this period</p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        @if(\App\Constants\Roles::isAdmin(session('role')) || ($user->employee?->role?->title ?? '') === \App\Constants\Roles::MANAGER_UNIT_HEAD)
-        <button type="button" class="btn-kpi btn-kpi-primary" data-bs-toggle="modal" data-bs-target="#addKPIModal">
-            <i class="bi bi-plus-circle-fill"></i> Tambah KPI Manual
-        </button>
-        @endif
         <a href="{{ route('reports.export-pdf', $employee->id) }}?period={{ $period }}" class="btn-kpi btn-kpi-outline" target="_blank">
             <i class="bi bi-file-earmark-pdf-fill text-danger"></i> Export PDF
         </a>
@@ -552,6 +547,22 @@ body.modal-open {
     @endif
 </div>
 
+<!-- Welcome / Info Banner -->
+<div class="alert alert-primary alert-dismissible fade show border-0 shadow-sm rounded-4 mb-4" role="alert" style="background-color: #f0f5ff; border-left: 5px solid var(--kpi-accent) !important;">
+    <div class="d-flex align-items-start gap-3">
+        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
+            <i class="bi bi-lightbulb-fill fs-5"></i>
+        </div>
+        <div>
+            <h5 class="alert-heading fw-bold mb-1" style="color: var(--kpi-primary-light);">Panduan Membaca Dashboard KPI</h5>
+            <p class="mb-0 text-secondary" style="font-size: 0.95rem;">
+                Nilai performa di bawah ini diperbarui secara otomatis berdasarkan tingkat disiplin Anda dalam melakukan <strong>Checkout Presensi</strong> dan produktivitas dalam <strong>Mengisi Log Pekerjaan</strong> harian.
+            </p>
+        </div>
+    </div>
+    <button type="button" class="btn-close shadow-none" data-bs-dismiss="alert" aria-label="Close" style="top: 10px; right: 10px;"></button>
+</div>
+
 @if(session('success'))
 <div class="kpi-alert kpi-alert-success alert-dismissible fade show" role="alert">
     <div class="kpi-alert-icon">
@@ -578,7 +589,10 @@ body.modal-open {
     <div class="kpi-summary-card card-blue">
         <div class="kpi-card-icon icon-blue"><i class="bi bi-bar-chart-fill"></i></div>
         <div>
-            <div class="kpi-summary-title">Composite Score</div>
+            <div class="kpi-summary-title">
+                Composite Score
+                <i class="bi bi-info-circle ms-1 text-muted" data-bs-toggle="tooltip" data-bs-placement="top" title="Nilai rata-rata dari seluruh metrik Anda (50% Kepatuhan Checkout + 50% Pengisian Log)."></i>
+            </div>
             <div class="kpi-summary-value">{{ round($compositeScore, 2) }}<span class="fs-6 text-muted fw-medium">/100</span></div>
             <div class="kpi-summary-sub">Overall performance score</div>
         </div>
@@ -598,7 +612,10 @@ body.modal-open {
     <div class="kpi-summary-card {{ $lvlClass }}">
         <div class="kpi-card-icon {{ $iconClass }}"><i class="bi bi-trophy-fill"></i></div>
         <div>
-            <div class="kpi-summary-title">Performance Level</div>
+            <div class="kpi-summary-title">
+                Performance Level
+                <i class="bi bi-info-circle ms-1 text-muted" data-bs-toggle="tooltip" data-bs-placement="top" title="Status capaian performa Anda. Skala: Excellent (>=90), Good (75-89), Satisfactory (60-74), Needs Improvement (45-59), Unsatisfactory (<45)."></i>
+            </div>
             <div class="mt-1">
                 @switch($performanceLevel)
                     @case('excellent')   <span class="kpi-badge badge-soft-success"><i class="bi bi-stars"></i> Excellent</span> @break
@@ -615,7 +632,10 @@ body.modal-open {
     <div class="kpi-summary-card card-green">
         <div class="kpi-card-icon icon-green"><i class="bi bi-check-all"></i></div>
         <div>
-            <div class="kpi-summary-title">KPIs Achieved</div>
+            <div class="kpi-summary-title">
+                KPIs Achieved
+                <i class="bi bi-info-circle ms-1 text-muted" data-bs-toggle="tooltip" data-bs-placement="top" title="Jumlah metrik di mana Anda berhasil mencapai target 100% secara penuh."></i>
+            </div>
             <div class="kpi-summary-value">{{ $kpiRecords->where('status', 'achieved')->count() }}<span class="fs-6 text-muted fw-medium">/{{ $kpiRecords->count() }}</span></div>
             <div class="kpi-summary-sub">Metrics hitting the target</div>
         </div>
@@ -637,8 +657,10 @@ body.modal-open {
     $firstRecord = $kpiRecords->first();
     $submissionStatus = $firstRecord->submission_status ?? 'draft';
     $reviewerNotes = $firstRecord->reviewer_notes ?? null;
+    $isMasterAdmin = \App\Constants\Roles::isAdmin(session('role'));
 @endphp
 
+@if(!$isMasterAdmin)
 <div class="kpi-status-banner status-{{ $submissionStatus }}">
     <div class="d-flex align-items-center gap-4">
         <div class="kpi-status-icon 
@@ -685,14 +707,22 @@ body.modal-open {
         @endif
     </div>
 </div>
+@endif
 
 <!-- KPI Metrics Tables -->
 @forelse($kpisByCategory as $category => $records)
 <div class="kpi-data-card shadow-sm border-0 mb-5">
-    <div class="kpi-data-header bg-white py-3 px-4 rounded-top border-bottom">
-        <div class="d-flex align-items-center gap-2">
-            <div style="width: 4px; height: 24px; background: var(--kpi-accent); border-radius: 2px;"></div>
-            <h3 class="kpi-data-title mb-0 fs-5 fw-800 text-dark">{{ $category }} Metrics</h3>
+    <div class="kpi-data-header bg-white py-3 px-4 rounded-top border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <div style="width: 4px; height: 24px; background: var(--kpi-accent); border-radius: 2px;"></div>
+                <h3 class="kpi-data-title mb-0 fs-5 fw-800 text-dark">{{ $category }} Metrics</h3>
+            </div>
+            @if(trim($category) === 'Attendance')
+                <p class="text-muted small mb-0 mt-1" style="margin-left: 12px;"><i class="bi bi-info-circle"></i> Target: Melakukan <strong>Checkout</strong> presensi setiap hari kerja (100%).</p>
+            @elseif(trim($category) === 'Productivity')
+                <p class="text-muted small mb-0 mt-1" style="margin-left: 12px;"><i class="bi bi-info-circle"></i> Target: Mengisi minimal <strong>1 Log Pekerjaan</strong> setiap hari kerja (100%).</p>
+            @endif
         </div>
         <span class="badge bg-light text-primary fw-bold">{{ $records->count() }} Metrics</span>
     </div>
@@ -705,7 +735,6 @@ body.modal-open {
                     <th class="border-0 text-muted small fw-800 text-center">ACTUAL</th>
                     <th class="border-0 text-muted small fw-800">ACHIEVEMENT</th>
                     <th class="border-0 text-muted small fw-800 text-center">STATUS</th>
-                    <th class="border-0 text-muted small fw-800 text-end">ACTIONS</th>
                 </tr>
             </thead>
             <tbody class="border-top-0">
@@ -713,7 +742,16 @@ body.modal-open {
                 <tr>
                     <td>
                         <div class="fw-bold text-dark mb-1">{{ $record->kpi->name }}</div>
-                        <div class="text-muted small lh-sm" style="max-width: 300px;">{{ $record->kpi->description ?: 'No description provided' }}</div>
+                        <div class="text-muted small lh-sm" style="max-width: 300px;">
+                            {{ $record->kpi->description ?: 'No description provided' }}
+                            @if(str_contains(strtolower($record->kpi->name), 'pengisian log'))
+                                <br><strong class="text-primary d-block mt-1" style="font-size: 0.75rem;"><i class="bi bi-info-circle-fill"></i> Info Perhitungan:</strong>
+                                <span style="font-size: 0.75rem;">Nilai ini diambil dari total log pekerjaan yang sudah Anda isi, dibandingkan dengan total hari kerja aktif di bulan ini.</span>
+                            @elseif(str_contains(strtolower($record->kpi->name), 'kepatuhan checkout'))
+                                <br><strong class="text-primary d-block mt-1" style="font-size: 0.75rem;"><i class="bi bi-info-circle-fill"></i> Info Perhitungan:</strong>
+                                <span style="font-size: 0.75rem;">Nilai ini diambil dari total presensi yang memiliki catatan check-out valid, dibandingkan dengan total hari Anda hadir bekerja.</span>
+                            @endif
+                        </div>
                     </td>
                     <td class="text-center">
                         <div class="fw-800 text-dark">{{ $record->target_value }}</div>
@@ -749,36 +787,6 @@ body.modal-open {
                                 <span class="kpi-badge badge-soft-danger small fw-bold">Critical</span>
                         @endswitch
                     </td>
-                    <td class="text-end">
-                        @if(in_array($submissionStatus, ['draft', 'rejected']))
-                        <div class="d-flex justify-content-end gap-1">
-                            <button type="button" class="btn btn-sm btn-light border-0 edit-kpi rounded-3 p-2" 
-                                style="background: #f8fafc;"
-                                title="Update Nilai/Catatan"
-                                data-id="{{ $record->id }}"
-                                data-name="{{ $record->kpi->name }}"
-                                data-actual="{{ $record->actual_value }}"
-                                data-notes="{{ $record->notes }}"
-                                data-auto="{{ $record->kpi->metric_category ? 'true' : 'false' }}"
-                                data-bs-toggle="modal" 
-                                data-bs-target="#editKPIModal">
-                                <i class="bi bi-pencil-square text-primary fs-6"></i>
-                            </button>
-                            
-                            <form action="{{ route('kpi.destroy-record', $record->id) }}" method="POST" class="delete-kpi-form">
-                                @csrf
-                                @method('DELETE')
-                                <button type="button" class="btn btn-sm btn-light border-0 delete-kpi rounded-3 p-2" 
-                                    style="background: #fff1f2;"
-                                    title="Hapus Metrik">
-                                    <i class="bi bi-trash text-danger fs-6"></i>
-                                </button>
-                            </form>
-                        </div>
-                        @else
-                        <span class="text-muted opacity-50"><i class="bi bi-lock-fill"></i></span>
-                        @endif
-                    </td>
                 </tr>
                 @endforeach
             </tbody>
@@ -793,12 +801,7 @@ body.modal-open {
         </div>
     </div>
     <h4 class="fw-800 text-dark mb-2">Belum Ada Metrik KPI</h4>
-    <p class="text-muted mb-4" style="max-width:380px;margin:0 auto;">Tidak ada KPI terdaftar untuk periode <strong>{{ \Carbon\Carbon::createFromFormat('Y-m',$period)->format('F Y') }}</strong>. Tambahkan metrik untuk mulai tracking performa Anda.</p>
-    @if(\App\Constants\Roles::isAdmin(session('role')) || ($user->employee?->role?->title ?? '') === \App\Constants\Roles::MANAGER_UNIT_HEAD)
-    <button class="btn-kpi btn-kpi-primary" data-bs-toggle="modal" data-bs-target="#addKPIModal">
-        <i class="bi bi-plus-circle-fill"></i> Tambah KPI Pertama
-    </button>
-    @endif
+    <p class="text-muted mb-4" style="max-width:380px;margin:0 auto;">Tidak ada KPI terdaftar untuk periode <strong>{{ \Carbon\Carbon::createFromFormat('Y-m',$period)->format('F Y') }}</strong>.</p>
 </div>
 @endforelse
 
@@ -850,262 +853,15 @@ body.modal-open {
 </div>
 {{-- ═══ END MAZER WRAPPER ═══ --}}
 
-<!-- Edit KPI Modal -->
-<div class="modal fade" id="editKPIModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <form id="editKPIForm" method="POST">
-                @csrf
-                <div class="modal-header border-0 pb-0">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="bg-primary-soft text-primary rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: var(--kpi-accent-soft);">
-                            <i class="bi bi-pencil-square fs-4 text-primary"></i>
-                        </div>
-                        <div>
-                            <h5 class="modal-title fw-800 text-dark mb-0">Update Nilai KPI</h5>
-                            <p class="mb-0 text-muted extra-small fw-600" id="modalKPIName"></p>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-
-                <div class="modal-body py-4">
-                    <div class="mb-4 mt-2">
-                        <label for="actual_value" class="form-label text-muted extra-small fw-800 ls-1">NILAI AKTUAL</label>
-                        <div class="input-group input-group-lg">
-                            <span class="input-group-text bg-light border-end-0 text-primary"><i class="bi bi-graph-up-arrow"></i></span>
-                            <input type="number" step="0.01" class="form-control border-start-0 ps-1 fw-800" id="actual_value" name="actual_value" placeholder="0.00">
-                        </div>
-                        <div id="autoCalculatedHint" class="mt-2 d-none">
-                            <div class="d-flex align-items-center gap-2 p-2 rounded-3 bg-info bg-opacity-10 border border-info border-opacity-10">
-                                <i class="bi bi-robot text-info"></i>
-                                <span class="text-info extra-small fw-semibold">Nilai ini dihitung otomatis oleh sistem.</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-0">
-                        <label for="notes" class="form-label text-muted extra-small fw-800 ls-1">CATATAN PENDUKUNG</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Berikan penjelasan atau justifikasi pencapaian..."></textarea>
-                    </div>
-                </div>
-
-                <div class="modal-footer border-0 bg-light bg-opacity-50">
-                    <button type="button" class="btn btn-link text-muted fw-bold text-decoration-none px-4" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn-kpi btn-kpi-primary px-4 shadow-sm">
-                        <i class="bi bi-save2-fill"></i> Simpan Perubahan
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Add KPI Modal -->
-<div class="modal fade" id="addKPIModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
-            <form action="{{ route('kpi.store') }}" method="POST">
-                @csrf
-                <input type="hidden" name="employee_id" value="{{ $employee->id }}">
-                <input type="hidden" name="period" value="{{ $period }}">
-                
-                <div class="modal-header border-0 pb-0 bg-white">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; background: #EEF2FF;">
-                            <i class="bi bi-plus-circle-fill fs-3 text-primary"></i>
-                        </div>
-                        <div>
-                            <h5 class="modal-title fw-800 text-dark ls-tight" style="letter-spacing: -0.5px;">Tambah KPI Manual</h5>
-                            <p class="mb-0 text-muted extra-small fw-600">Assign metrik penilaian baru ke periode berjalan.</p>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                
-                <div class="modal-body py-4">
-                    <div class="mb-4" id="selectKpiContainer">
-                        <label for="kpi_id" class="form-label text-muted extra-small fw-800 ls-1">PILIH METRIK KPI</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0 text-primary"><i class="bi bi-list-stars"></i></span>
-                            <select class="form-select border-start-0 ps-1 fw-600" id="kpi_id" name="kpi_id">
-                                <option value="">-- Silakan Pilih KPI --</option>
-                                @foreach($allKpis ?? [] as $k)
-                                    <option value="{{ $k->id }}">[{{ $k->category }}] {{ $k->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="mt-2 text-end">
-                            <button type="button" class="btn btn-link btn-sm text-primary fw-bold text-decoration-none p-0" id="btnShowNewKpi">
-                                <i class="bi bi-plus-lg"></i> Atau buat metrik baru...
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- New KPI Fields (Hidden by default) -->
-                    <div id="newKpiContainer" class="d-none">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <label class="form-label text-muted extra-small fw-800 ls-1 mb-0">BUAT METRIK BARU</label>
-                            <button type="button" class="btn btn-link btn-sm text-secondary text-decoration-none p-0" id="btnShowSelectKpi">
-                                <i class="bi bi-arrow-left"></i> Kembali pilih list
-                            </button>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <input type="text" class="form-control fw-600" name="new_kpi_name" id="new_kpi_name" placeholder="Nama Metrik (misal: Customer Satisfaction)">
-                        </div>
-                        
-                        <div class="row g-3 mb-4">
-                            <div class="col-6">
-                                <select class="form-select small fw-600" name="new_kpi_category">
-                                    <option value="Attendance">Attendance</option>
-                                    <option value="Productivity">Productivity</option>
-                                    <option value="Quality" selected>Quality</option>
-                                    <option value="Behavior">Behavior</option>
-                                    <option value="Leave">Leave</option>
-                                </select>
-                            </div>
-                            <div class="col-6">
-                                <input type="text" class="form-control small fw-600" name="new_kpi_unit" placeholder="Satuan (%, Jam, Rp)">
-                            </div>
-                        </div>
-                        <input type="hidden" name="is_new_kpi" id="is_new_kpi" value="0">
-                    </div>
-                    
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <label for="add_target_value" class="form-label text-muted extra-small fw-800 ls-1">NILAI TARGET</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0 text-secondary"><i class="bi bi-bullseye"></i></span>
-                                <input type="number" step="0.01" class="form-control border-start-0 ps-1 fw-700" id="add_target_value" name="target_value" value="100" required>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <label for="add_actual_value" class="form-label text-muted extra-small fw-800 ls-1">NILAI AKTUAL</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0 text-warning"><i class="bi bi-lightning-charge-fill"></i></span>
-                                <input type="number" step="0.01" class="form-control border-start-0 ps-1 fw-800 text-dark" id="add_actual_value" name="actual_value" required placeholder="0.00">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <label for="add_notes" class="form-label text-muted extra-small fw-800 ls-1">CATATAN PENDUKUNG (OPSIONAL)</label>
-                        <textarea class="form-control" id="add_notes" name="notes" rows="3" placeholder="Tuliskan justifikasi atau keterangan nilai aktual..."></textarea>
-                    </div>
-                </div>
-                
-                <div class="modal-footer border-0 bg-light bg-opacity-50">
-                    <button type="button" class="btn btn-link text-muted fw-bold text-decoration-none px-4" data-bs-dismiss="modal">Batalkan</button>
-                    <button type="submit" class="btn-kpi btn-kpi-primary px-4 shadow-sm">
-                        <i class="bi bi-cloud-arrow-up-fill"></i> Simpan Data KPI
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 @push('scripts')
 <script>
-$(function() {
-    // ═══════════════════════════════════════════════════════
-    // FIX: Move Modals to Body to prevent Mazer sidebar overlay
-    // ═══════════════════════════════════════════════════════
-    $('#editKPIModal').appendTo('body');
-    $('#addKPIModal').appendTo('body');
-
-    // Edit KPI Modal logic
-    $('.edit-kpi').on('click', function() {
-        const id = $(this).data('id');
-        const name = $(this).data('name');
-        const actual = $(this).data('actual');
-        const notes = $(this).data('notes');
-        const isAuto = $(this).data('auto');
-
-        $('#modalKPIName').text(name);
-        $('#notes').val(notes);
-        
-        const form = $('#editKPIForm');
-        form.attr('action', `/kpi/record/${id}`);
-
-        if (isAuto && isAuto !== false && isAuto !== 'false') {
-            $('#actual_value').val(actual).attr('readonly', true).addClass('bg-light');
-            $('#autoCalculatedHint').removeClass('d-none');
-        } else {
-            $('#actual_value').val(actual).attr('readonly', false).removeClass('bg-light');
-            $('#autoCalculatedHint').addClass('d-none');
-        }
-    });
-
-    $('.submit-confirm').on('click', function(e) {
-        e.preventDefault();
-        const form = $(this).closest('form');
-        const msg = $(this).data('message') || 'Konfirmasi tindakan ini?';
-        
-        Swal.fire({
-            title: 'Konfirmasi Pengajuan',
-            text: msg,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#1e3a8a',
-            cancelButtonColor: '#cbd5e1',
-            confirmButtonText: 'Ya, Ajukan!',
-            cancelButtonText: 'Batal',
-            customClass: {
-                confirmButton: 'btn btn-primary px-4',
-                cancelButton: 'btn btn-light px-4'
-            },
-            buttonsStyling: false
-        }).then((result) => {
-            if (result.isConfirmed) {
-                form.submit();
-            }
+    document.addEventListener("DOMContentLoaded", function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     });
-
-    // Delete KPI confirmation
-    $('.delete-kpi').on('click', function(e) {
-        e.preventDefault();
-        const form = $(this).closest('form');
-        
-        Swal.fire({
-            title: 'Hapus Metrik KPI?',
-            text: "Data metrik ini akan dihapus permanen dari periode ini.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Ya, Hapus!',
-            cancelButtonText: 'Batal',
-            customClass: {
-                confirmButton: 'btn btn-danger px-4',
-                cancelButton: 'btn btn-light px-4'
-            },
-            buttonsStyling: false
-        }).then((result) => {
-            if (result.isConfirmed) {
-                form.submit();
-            }
-        });
-    });
-
-    // Toggle New KPI fields
-    $('#btnShowNewKpi').on('click', function() {
-        $('#selectKpiContainer').addClass('d-none');
-        $('#newKpiContainer').removeClass('d-none');
-        $('#is_new_kpi').val('1');
-        $('#kpi_id').val('').prop('required', false);
-        $('#new_kpi_name').prop('required', true);
-    });
-
-    $('#btnShowSelectKpi').on('click', function() {
-        $('#newKpiContainer').addClass('d-none');
-        $('#selectKpiContainer').removeClass('d-none');
-        $('#is_new_kpi').val('0');
-        $('#kpi_id').prop('required', true);
-        $('#new_kpi_name').prop('required', false);
-    });
-});
 </script>
 @endpush
+
 @endsection

@@ -41,6 +41,7 @@ services:
       - ./config:/var/www/html/config
       - ./database:/var/www/html/database
       - ./.env:/var/www/html/.env
+      - ./vendor:/var/www/html/vendor
       - ./docker/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
     depends_on:
       db:

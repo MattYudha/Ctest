@@ -18,6 +18,7 @@ class Employee extends Model
         'nik',
         'fullname',
         'email',
+        'profile_photo',
         'phone_number',
         'npwp',
         'place_of_birth',
@@ -86,6 +87,11 @@ class Employee extends Model
     public function supervisor()
     {
         return $this->belongsTo(Employee::class, 'supervisor_id');
+    }
+
+    public function subordinates()
+    {
+        return $this->hasMany(Employee::class, 'supervisor_id');
     }
 
     /**

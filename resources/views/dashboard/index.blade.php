@@ -113,4 +113,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+@include('components.employee-of-the-month-modal')
+
 @endsection
