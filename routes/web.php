@@ -461,8 +461,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('kpi.department.delete')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::get('kpi/company', [KPIController::class, 'companyDashboard'])
-        ->name('kpi.company')
-        ->middleware(['role:Administrator,' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
+        ->name('kpi.company');
     Route::post('kpi/recalculate/{id}', [KPIController::class, 'recalculate'])
         ->name('kpi.recalculate')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN, 'throttle:300,1']);

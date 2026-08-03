@@ -240,41 +240,53 @@ class DashboardController extends Controller
             $myLetterCount = Letter::where('user_id', $user->id)->count();
         }
 
-        /* ================= EMPLOYEE OF THE MONTH (Recalculate Snapshot Cache) ================= */
-        $periodNow = now()->format('Y-m');
+        /* ================= EMPLOYEE OF THE MONTH (Latest Official) ================= */
         $employeeOfTheMonth = null;
-        $cachedDashboard = \Illuminate\Support\Facades\Cache::get('company_kpi_dashboard_data');
-
-        if ($cachedDashboard && isset($cachedDashboard['best_employee']) && ($cachedDashboard['period'] ?? '') === $periodNow) {
-            $best = $cachedDashboard['best_employee'];
-            $empModel = Employee::find($best['employee_id'] ?? 0);
-            $employeeOfTheMonth = [
-                'employee' => $empModel,
-                'fullname' => $best['fullname'],
-                'department' => $best['department'],
-                'position' => $best['position'],
-                'composite_score' => $best['composite_score'],
-                'performance_level' => $best['performance_level'] ?? 'excellent',
-                'photo' => $best['photo'] ?? null,
-                'period_label' => \Carbon\Carbon::createFromFormat('Y-m', $periodNow)->format('F Y'),
-            ];
-        } else {
-            // Fallback calculation across all employees
-            $allEmp = Employee::all();
-            $topScore = -1;
-            foreach ($allEmp as $empItem) {
-                $dual = \App\Services\KPICalculationService::calculateDualMetricsForEmployee($empItem, $periodNow);
-                if ($dual['score'] > $topScore) {
-                    $topScore = $dual['score'];
+        
+        // Find the most recent period that has been officially generated
+        $latestRecord = EmployeeKPIRecord::orderByDesc('period')->first();
+        
+        if ($latestRecord) {
+            $targetPeriod = $latestRecord->period;
+            
+            // Check cache first for this specific period
+            $cachedDashboard = \Illuminate\Support\Facades\Cache::get('company_kpi_dashboard_data');
+            
+            if ($cachedDashboard && isset($cachedDashboard['best_employee']) && ($cachedDashboard['period'] ?? '') === $targetPeriod) {
+                $best = $cachedDashboard['best_employee'];
+                $empModel = Employee::find($best['employee_id'] ?? 0);
+                if ($empModel) {
+                    $employeeOfTheMonth = [
+                        'employee' => $empModel,
+                        'fullname' => $best['fullname'],
+                        'department' => $best['department'],
+                        'position' => $best['position'],
+                        'composite_score' => $best['composite_score'],
+                        'performance_level' => $best['performance_level'] ?? 'excellent',
+                        'photo' => $best['photo'] ?? null,
+                        'period_label' => \Carbon\Carbon::createFromFormat('Y-m', $targetPeriod)->format('F Y'),
+                    ];
+                }
+            }
+            
+            // If cache not found or mismatched, query DB directly
+            if (!$employeeOfTheMonth) {
+                $bestRecord = EmployeeKPIRecord::with(['employee.department', 'employee.position', 'employee.role'])
+                    ->where('period', $targetPeriod)
+                    ->orderByDesc('composite_score')
+                    ->first();
+                    
+                if ($bestRecord && $bestRecord->employee) {
+                    $empItem = $bestRecord->employee;
                     $employeeOfTheMonth = [
                         'employee' => $empItem,
                         'fullname' => $empItem->fullname,
                         'department' => $empItem->department->name ?? 'General',
                         'position' => $empItem->position->name ?? ($empItem->role->title ?? 'Staff'),
-                        'composite_score' => $dual['score'],
-                        'performance_level' => $dual['level'],
+                        'composite_score' => $bestRecord->composite_score,
+                        'performance_level' => $bestRecord->performance_level,
                         'photo' => $empItem->profile_photo ?? null,
-                        'period_label' => now()->format('F Y'),
+                        'period_label' => \Carbon\Carbon::createFromFormat('Y-m', $targetPeriod)->format('F Y'),
                     ];
                 }
             }

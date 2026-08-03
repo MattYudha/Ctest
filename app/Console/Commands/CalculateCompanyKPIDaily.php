@@ -70,9 +70,11 @@ class CalculateCompanyKPIDaily extends Command
             ->all();
 
         $cacheData = [
+            'period' => $period,
             'last_updated' => now()->toDateTimeString(),
             'next_update' => now()->addDay()->startOfDay()->toDateTimeString(),
-            'data' => $sortedData
+            'data' => $sortedData,
+            'best_employee' => $sortedData[0] ?? null,
         ];
         
         \Illuminate\Support\Facades\Cache::put('company_kpi_dashboard_data', $cacheData, 86400); // cache for 24h

@@ -33,6 +33,9 @@ class KPIController extends Controller
 
         // Support period navigation via ?period=YYYY-MM
         $period = $request->input('period', now()->format('Y-m'));
+        
+        $isOwner = true;
+        $isExecutive = \App\Constants\Roles::isAdmin(session('role')) || ($user->employee?->role?->title ?? '') === \App\Constants\Roles::MANAGER_UNIT_HEAD;
 
         // Validate period format, fallback to current month if invalid
         if (!preg_match('/^\d{4}-\d{2}$/', $period)) {
@@ -92,7 +95,7 @@ class KPIController extends Controller
         return view('kpi.dashboard', compact(
             'employee', 'period', 'kpiRecords', 'compositeScore', 'performanceLevel',
             'kpisByCategory', 'incidents', 'allKpis',
-            'prevPeriod', 'nextPeriod', 'isCurrentMonth', 'periodCarbon'
+            'prevPeriod', 'nextPeriod', 'isCurrentMonth', 'periodCarbon', 'isOwner', 'isExecutive'
         ));
     }
 
@@ -105,9 +108,10 @@ class KPIController extends Controller
         $user = Auth::user();
         $employee = Employee::findOrFail($id);
 
-        if (($user->employee?->id ?? null) !== $employee->id && !\App\Constants\Roles::isAdmin(session('role')) && ($user->employee?->role?->title ?? '') !== \App\Constants\Roles::MANAGER_UNIT_HEAD) {
-            abort(403, 'Unauthorized');
-        }
+        $isOwner = ($user->employee?->id ?? null) === $employee->id;
+        $isExecutive = \App\Constants\Roles::isAdmin(session('role')) || ($user->employee?->role?->title ?? '') === \App\Constants\Roles::MANAGER_UNIT_HEAD;
+        
+        // Removed abort(403) to allow any authenticated user to view the profile.
 
         $period = request('period', now()->format('Y-m'));
 
@@ -187,6 +191,10 @@ class KPIController extends Controller
      */
     public function syncEmployeeMetrics(Request $request, $id)
     {
+        if (!\App\Constants\Roles::isAdmin(session('role'))) {
+            abort(403, 'Unauthorized. Only Admins can sync live metrics.');
+        }
+
         $employee = Employee::findOrFail($id);
         $period = $request->input('period', now()->format('Y-m'));
 
@@ -882,9 +890,10 @@ class KPIController extends Controller
         $employee = Employee::findOrFail($id);
 
         // Authorization: User can view their own trend, or managers/HR Administrator can view anyone's
-        if (($user->employee?->id ?? null) !== $employee->id && !\App\Constants\Roles::isAdmin(session('role')) && ($user->employee?->role?->title ?? '') !== \App\Constants\Roles::MANAGER_UNIT_HEAD) {
-            abort(403, 'Unauthorized');
-        }
+        // Modified: Allow any employee to view trends (View Only).
+        // if (($user->employee?->id ?? null) !== $employee->id && !\App\Constants\Roles::isAdmin(session('role')) && ($user->employee?->role?->title ?? '') !== \App\Constants\Roles::MANAGER_UNIT_HEAD) {
+        //     abort(403, 'Unauthorized');
+        // }
 
         $months = (int) $request->input('months', 6); // Default 6 months, min 1, max 12
         $months = max(1, min($months, 12));

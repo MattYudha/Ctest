@@ -377,64 +377,74 @@
             </div>
             @forelse($teamSummaries ?? [] as $index => $tSummary)
             <div class="col-12 col-md-6 col-lg-4 mb-3">
-                <div class="stat-tile-soft h-100 border-start border-3 {{ $tSummary['is_stable'] ? 'border-success' : 'border-warning' }} shadow-sm">
-                    <!-- Top Bar: Rank Badge + Sample Pill -->
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                            @if($index === 0)
-                                <span class="badge badge-soft-amber border border-warning px-2 py-1 fw-extrabold" style="font-size: 0.85rem;">
-                                    🥇 Juara #1
-                                </span>
-                            @elseif($index === 1)
-                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 fw-extrabold" style="font-size: 0.85rem;">
-                                    🥈 Peringkat #2
-                                </span>
-                            @elseif($index === 2)
-                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 fw-extrabold" style="font-size: 0.85rem;">
-                                    🥉 Peringkat #3
+                <div class="card border border-opacity-10 shadow-sm rounded-4 h-100 overflow-hidden" style="{{ $index === 0 ? 'background: linear-gradient(135deg, #fffdf5 0%, #ffffff 100%); border: 1.5px solid #fef08a !important;' : 'background-color: #ffffff;' }}">
+                    <div class="card-body p-3.5 d-flex flex-column justify-content-between">
+                        <!-- Top Bar: Rank Trophy Badge + Sample Pill -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                @if($index === 0)
+                                    <span class="badge border border-warning px-2.5 py-1.5 fw-bold rounded-pill" style="background-color: #fef3c7; color: #92400e; font-size: 0.8rem;">
+                                        <i class="bi bi-trophy-fill text-warning me-1"></i> 🥇 Juara #1
+                                    </span>
+                                @elseif($index === 1)
+                                    <span class="badge border border-secondary border-opacity-25 px-2.5 py-1.5 fw-bold rounded-pill" style="background-color: #f1f5f9; color: #334155; font-size: 0.8rem;">
+                                        🥈 Peringkat #2
+                                    </span>
+                                @elseif($index === 2)
+                                    <span class="badge border border-danger border-opacity-25 px-2.5 py-1.5 fw-bold rounded-pill" style="background-color: #fef2f2; color: #991b1b; font-size: 0.8rem;">
+                                        🥉 Peringkat #3
+                                    </span>
+                                @else
+                                    <span class="badge border border-secondary border-opacity-25 px-2.5 py-1.5 fw-bold rounded-pill" style="background-color: #f8fafc; color: #475569; font-size: 0.8rem;">
+                                        Peringkat #{{ $index + 1 }}
+                                    </span>
+                                @endif
+                            </div>
+                            @if($tSummary['is_stable'])
+                                <span class="badge border border-success border-opacity-25 fw-bold px-2.5 py-1 rounded-pill" style="background-color: #ecfdf5; color: #065f46; font-size: 0.75rem;">
+                                    <i class="bi bi-shield-check me-1"></i> {{ $tSummary['badge_label'] }}
                                 </span>
                             @else
-                                <span class="badge bg-light text-secondary border px-2 py-1 fw-bold" style="font-size: 0.85rem;">
-                                    Peringkat #{{ $index + 1 }}
+                                <span class="badge border border-warning border-opacity-25 fw-bold px-2.5 py-1 rounded-pill" style="background-color: #fffbeb; color: #92400e; font-size: 0.75rem;">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ $tSummary['badge_label'] }}
                                 </span>
                             @endif
                         </div>
-                        <span class="badge {{ $tSummary['is_stable'] ? 'badge-soft-emerald' : 'badge-soft-amber' }} fw-bold" style="font-size: 0.75rem;">
-                            {{ $tSummary['badge_label'] }}
-                        </span>
-                    </div>
 
-                    <!-- Team Leader Profile Info -->
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                            @if(!empty($tSummary['supervisor']->profile_photo))
-                                <img src="{{ asset('storage/' . $tSummary['supervisor']->profile_photo) }}" alt="{{ $tSummary['supervisor']->fullname }}" class="rounded-circle border" style="width: 36px; height: 36px; object-fit: cover;">
-                            @else
-                                <div class="rounded-circle bg-primary bg-opacity-10 text-primary fw-bold d-flex align-items-center justify-content-center fs-7" style="width: 36px; height: 36px;">
-                                    {{ strtoupper(substr($tSummary['supervisor']->fullname, 0, 2)) }}
+                        <!-- Team Leader Profile Info & Staff Link -->
+                        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-10">
+                            <div class="d-flex align-items-center gap-2.5">
+                                @if(!empty($tSummary['supervisor']->profile_photo))
+                                    <img src="{{ asset('storage/' . $tSummary['supervisor']->profile_photo) }}" alt="{{ $tSummary['supervisor']->fullname }}" class="rounded-circle border shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
+                                @else
+                                    <div class="rounded-circle fw-bold d-flex align-items-center justify-content-center border fs-7" style="width: 40px; height: 40px; background-color: #eff6ff; color: #1d4ed8;">
+                                        {{ strtoupper(substr($tSummary['supervisor']->fullname, 0, 2)) }}
+                                    </div>
+                                @endif
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-truncate" style="max-width: 140px; color: #0f172a;" title="Tim {{ $tSummary['supervisor']->fullname }}">Tim {{ $tSummary['supervisor']->fullname }}</h6>
+                                    <small class="text-muted fs-7">{{ $tSummary['supervisor']->role?->title ?? 'Atasan' }}</small>
                                 </div>
-                            @endif
-                            <div>
-                                <h6 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 140px;">Tim {{ $tSummary['supervisor']->fullname }}</h6>
-                                <small class="text-muted fs-7">{{ $tSummary['supervisor']->role?->title ?? 'Atasan' }}</small>
+                            </div>
+                            <a href="{{ route('kpi.team') }}?period={{ $period }}&supervisor_id={{ $tSummary['supervisor']->id }}" class="badge border border-info border-opacity-25 fw-bold rounded-pill px-2.5 py-1.5 text-decoration-none" style="background-color: #f0f9ff; color: #0284c7; font-size: 0.75rem;">
+                                <i class="bi bi-people-fill me-1"></i> {{ $tSummary['member_count'] }} Staf <i class="bi bi-chevron-right ms-1"></i>
+                            </a>
+                        </div>
+
+                        <!-- Score Metrics Readout -->
+                        <div>
+                            <div class="d-flex align-items-baseline justify-content-between mb-1">
+                                <small class="text-muted fw-bold text-uppercase fs-7">Rata-Rata Skor Tim</small>
+                                <h2 class="fw-extrabold mb-0 {{ $tSummary['avg_score'] >= 75 ? 'text-success' : ($tSummary['avg_score'] >= 60 ? 'text-warning' : 'text-danger') }}">{{ $tSummary['avg_score'] }}<span class="fs-7 text-muted fw-normal"> /100</span></h2>
+                            </div>
+                            <div class="progress" style="height: 6px; border-radius: 10px; background-color: #e2e8f0;">
+                                <div class="progress-bar" style="width: {{ min($tSummary['avg_score'], 100) }}%; border-radius: 10px; background: {{ $tSummary['avg_score'] >= 75 ? 'linear-gradient(90deg, #34d399, #059669)' : ($tSummary['avg_score'] >= 60 ? 'linear-gradient(90deg, #fbbf24, #d97706)' : 'linear-gradient(90deg, #f87171, #dc2626)') }};"></div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2.5 pt-2 border-top border-secondary border-opacity-10">
+                                <small class="text-muted fs-7">Skor Staf Tertinggi:</small>
+                                <small class="fw-bold px-2 py-0.5 rounded border fs-7" style="background-color: #f8fafc; color: #1e293b;">{{ $tSummary['max_score'] }}/100</small>
                             </div>
                         </div>
-                        <a href="{{ route('kpi.team') }}?period={{ $period }}&supervisor_id={{ $tSummary['supervisor']->id }}" class="badge bg-primary bg-opacity-10 text-primary fw-bold text-decoration-none">
-                            {{ $tSummary['member_count'] }} Anggota Tim <i class="bi bi-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-
-                    <!-- Score Metrics -->
-                    <div class="d-flex align-items-baseline gap-2 mb-2">
-                        <h3 class="fw-extrabold mb-0 {{ $tSummary['avg_score'] >= 75 ? 'text-success' : ($tSummary['avg_score'] >= 60 ? 'text-warning' : 'text-danger') }}">{{ $tSummary['avg_score'] }}</h3>
-                        <small class="text-muted fs-7">Rata-Rata Skor Tim</small>
-                    </div>
-                    <div class="progress" style="height: 6px; border-radius: 6px;">
-                        <div class="progress-bar {{ $tSummary['avg_score'] >= 75 ? 'bg-success' : ($tSummary['avg_score'] >= 60 ? 'bg-warning' : 'bg-danger') }}" style="width: {{ min($tSummary['avg_score'], 100) }}%;"></div>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
-                        <small class="text-muted">Skor Staf Tertinggi:</small>
-                        <small class="fw-bold text-dark">{{ $tSummary['max_score'] }}/100</small>
                     </div>
                 </div>
             </div>
