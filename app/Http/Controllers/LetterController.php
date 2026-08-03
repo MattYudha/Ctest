@@ -111,6 +111,12 @@ class LetterController extends Controller
 
         // process replace dynamic tags if any
         if ($request->has('dynamic_tags')) {
+            // Remove 'Lokasi Kantor' from content if Tipe Kehadiran is not WFO
+            $tipeKehadiran = $request->dynamic_tags['tipe_kehadiran_kerja'] ?? null;
+            if ($tipeKehadiran && strtoupper(trim($tipeKehadiran)) !== 'WFO') {
+                $content = preg_replace('/<p[^>]*>(?:(?!<\/?p\b).)*?\[lokasi_kantor\](?:(?!<\/?p\b).)*?<\/p>/is', '', $content);
+            }
+
             foreach ($request->dynamic_tags as $tagName => $value) {
                 $displayValue = $value; // default value to be replaced into text
 
@@ -121,6 +127,14 @@ class LetterController extends Controller
                     // if the type is date, change to localized format
                     if ($tagData->input_type === 'date' && !empty($value)) {
                         $displayValue = \Carbon\Carbon::parse($value)->locale('id')->translatedFormat('d F Y');
+                    }
+
+                    if ($tagData->input_type === 'multiple_date' && !empty($value)) {
+                        $dates = explode(',', $value);
+                        $formattedDates = array_map(function($date) {
+                            return \Carbon\Carbon::parse(trim($date))->locale('id')->translatedFormat('d F Y');
+                        }, $dates);
+                        $displayValue = implode(', ', $formattedDates);
                     }
 
                     // if the type is a dropdown from the database, get the original name so the number "3" doesn't appear in the letter
@@ -228,6 +242,12 @@ class LetterController extends Controller
 
         // process replacing dynamic tags if the template is changed/refilled
         if ($request->has('dynamic_tags')) {
+            // Remove 'Lokasi Kantor' from content if Tipe Kehadiran is not WFO
+            $tipeKehadiran = $request->dynamic_tags['tipe_kehadiran_kerja'] ?? null;
+            if ($tipeKehadiran && strtoupper(trim($tipeKehadiran)) !== 'WFO') {
+                $content = preg_replace('/<p[^>]*>(?:(?!<\/?p\b).)*?\[lokasi_kantor\](?:(?!<\/?p\b).)*?<\/p>/is', '', $content);
+            }
+
             foreach ($request->dynamic_tags as $tagName => $value) {
                 $displayValue = $value; // default value to be replaced into text
 
@@ -238,6 +258,14 @@ class LetterController extends Controller
                     // if the type is date, change to localized format
                     if ($tagData->input_type === 'date' && !empty($value)) {
                         $displayValue = \Carbon\Carbon::parse($value)->locale('id')->translatedFormat('d F Y');
+                    }
+
+                    if ($tagData->input_type === 'multiple_date' && !empty($value)) {
+                        $dates = explode(',', $value);
+                        $formattedDates = array_map(function($date) {
+                            return \Carbon\Carbon::parse(trim($date))->locale('id')->translatedFormat('d F Y');
+                        }, $dates);
+                        $displayValue = implode(', ', $formattedDates);
                     }
 
                     // if the type is a dropdown from the database, get the original name so the number "3" doesn't appear in the letter
@@ -353,38 +381,46 @@ class LetterController extends Controller
 
         $template = LetterTemplate::find($letter->letter_template_id);
 
-        if ($template && in_array($template->name, ['Surat Lupa Absen', 'Surat Telat Absen'])) {
+        if ($template && in_array($template->name, ['Surat Lupa Absen', 'Surat Telat Absen', 'Surat Cuti'])) {
             // decode the json we saved during creation
             $meta = json_decode($letter->meta_data, true);
 
             if (is_array($meta)) {
                 $lokasiKantorId = $meta['lokasi_kantor'] ?? null;
                 $office = $lokasiKantorId ? OfficeLocation::find($lokasiKantorId) : null;
-                $tanggal = $meta['tanggal_lupa_absen'] ?? $meta['tanggal_telat_absen'] ?? null;
+                $tanggalString = $meta['tanggal_cuti_multiple'] ?? $meta['tanggal_lupa_absen_multiple'] ?? $meta['tanggal_telat_absen_multiple'] ?? $meta['tanggal_lupa_absen'] ?? $meta['tanggal_telat_absen'] ?? null;
 
-                if ($tanggal) {
-                    Presence::updateOrCreate(
-                        // parameter 1: search condition
-                        [
-                            'employee_id' => $letter->user->employee->id,
-                            'date' => $tanggal,
-                        ],
-                        // parameter 2: data to be inserted or updated
-                        [
-                            'check_in' => $tanggal . ' 09:00:00',
-                            'check_out' => $tanggal . ' 17:00:00',
-                            'latitude' => $office->latitude ?? '0.000000',
-                            'longitude' => $office->longitude ?? '0.000000',
-                            'check_out_latitude' => $office->latitude ?? '0.000000',
-                            'check_out_longitude' => $office->longitude ?? '0.000000',
-                            'office_location_id' => $lokasiKantorId,
-                            'work_type' => $meta['tipe_kehadiran_kerja'] ?? 'WFO',
-                            'status' => 'present',
-                            'is_late' => 0,
-                            'photo_path' => 'assets/images/default/admin-manual-presence.png',
-                            'notes' => 'Manually created/updated by letter system, letter number : ' . $letter->letter_number,
-                        ]
-                    );
+                if ($tanggalString) {
+                    $tanggalArray = array_map('trim', explode(',', $tanggalString));
+                    
+                    foreach ($tanggalArray as $tanggal) {
+                        if (empty($tanggal)) continue;
+                        
+                        $isCuti = $template->name === 'Surat Cuti';
+                        
+                        Presence::updateOrCreate(
+                            // parameter 1: search condition
+                            [
+                                'employee_id' => $letter->user->employee->id,
+                                'date' => $tanggal,
+                            ],
+                            // parameter 2: data to be inserted or updated
+                            [
+                                'check_in' => $isCuti ? null : $tanggal . ' 09:00:00',
+                                'check_out' => $isCuti ? null : $tanggal . ' 17:00:00',
+                                'latitude' => $isCuti ? '0.000000' : ($office->latitude ?? '0.000000'),
+                                'longitude' => $isCuti ? '0.000000' : ($office->longitude ?? '0.000000'),
+                                'check_out_latitude' => $isCuti ? '0.000000' : ($office->latitude ?? '0.000000'),
+                                'check_out_longitude' => $isCuti ? '0.000000' : ($office->longitude ?? '0.000000'),
+                                'office_location_id' => $isCuti ? null : $lokasiKantorId,
+                                'work_type' => $isCuti ? 'WFA' : ($meta['tipe_kehadiran_kerja'] ?? 'WFO'),
+                                'status' => $isCuti ? 'leave' : 'present',
+                                'is_late' => 0,
+                                'photo_path' => 'assets/images/default/admin-manual-presence.png',
+                                'notes' => 'Manually created/updated by letter system, letter number : ' . $letter->letter_number,
+                            ]
+                        );
+                    }
                 }
             }
         }

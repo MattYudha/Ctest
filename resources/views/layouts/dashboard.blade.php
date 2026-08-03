@@ -535,7 +535,7 @@
 
                         <li class="sidebar-title">Personal</li>
 
-                        <li class="sidebar-item {{ request()->is('my-profile') ? 'active' : '' }}">
+                        <li class="sidebar-item {{ request()->is('my-profile*') ? 'active' : '' }}">
                             <a href="{{ url('/my-profile') }}" class="sidebar-link">
                                 <i class="bi bi-person-fill"></i>
                                 <span>My Profile</span>
