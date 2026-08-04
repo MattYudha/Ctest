@@ -89,6 +89,12 @@ Route::middleware(['auth'])->group(function () {
         'knowledge-base.show',
     );
 
+    // Face Recognition endpoints
+    Route::post('/api/face/register', [\App\Http\Controllers\Api\FaceEnrollmentController::class, 'register'])->name('api.face.register');
+    Route::post('/api/face/verify', [\App\Http\Controllers\Api\FaceEnrollmentController::class, 'verify'])->name('api.face.verify');
+    Route::delete('/api/face/destroy', [\App\Http\Controllers\Api\FaceEnrollmentController::class, 'destroy'])->name('api.face.destroy');
+    Route::post('/api/attendance/check', [\App\Http\Controllers\Api\AttendanceController::class, 'check'])->name('api.attendance.check');
+
     // Dashboard chart, buatan sendiri
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/presence', [DashboardController::class, 'presence']);
