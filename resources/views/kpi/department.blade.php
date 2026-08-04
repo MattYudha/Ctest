@@ -201,8 +201,8 @@
                 <strong>{{ $selectedDepartment ? $selectedDepartment->name : 'Semua Departemen' }}</strong> • {{ \Carbon\Carbon::createFromFormat('Y-m', $period)->format('F Y') }}
             </p>
         </div>
-        <div class="col-md-8 text-right">
-            <div class="d-flex justify-content-end align-items-center flex-wrap gap-2">
+        <div class="col-md-8 text-right mt-3 mt-md-0">
+            <div class="d-flex justify-content-start justify-content-md-end align-items-center flex-wrap gap-2">
                 <form method="GET" class="d-flex align-items-center gap-1 me-1" id="deptFilterForm">
                     <input type="hidden" name="period" value="{{ $period }}">
                     <label class="fw-bold text-dark mb-0 me-1">Dept: </label>
@@ -286,9 +286,9 @@
                                 <i class="bi bi-info-circle-fill fs-5"></i>
                             </div>
                             <div class="w-100">
-                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between mb-1 gap-1 gap-sm-0">
                                     <h6 class="fw-bold mb-0">Panduan Transparansi & Perhitungan Objektif KPI Divisi</h6>
-                                    <span class="badge bg-info text-white fw-bold">100% Objektif & Otomatis</span>
+                                    <span class="badge bg-info text-white fw-bold text-wrap text-start mt-1 mt-sm-0">100% Objektif & Otomatis</span>
                                 </div>
                                 <p class="text-muted fs-7 mb-2">
                                     Penilaian kinerja divisi dihitung secara objektif berdasarkan gabungan <strong>2 indikator riil (bobot 50:50)</strong> dari seluruh karyawan dalam divisi terkait:
@@ -635,11 +635,11 @@
         <div class="row mb-4">
             <div class="col-md-12">
                 <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center border-bottom">
+                    <div class="card-header bg-transparent py-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center border-bottom gap-2 gap-sm-0">
                         <h5 class="card-title mb-0 fw-bold">
                             <i class="bi bi-trophy-fill text-warning me-2"></i>Peringkat Performa Karyawan Divisi
                         </h5>
-                        <span class="badge bg-secondary bg-opacity-10 text-body fw-bold border px-3 py-2">
+                        <span class="badge bg-secondary bg-opacity-10 text-body fw-bold border px-3 py-2 text-wrap text-start">
                             Diurutkan dari Skor Komposisi Tertinggi
                         </span>
                     </div>

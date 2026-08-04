@@ -81,8 +81,8 @@
                 <span style="position: absolute; top: 0px; left: 50%; transform: translateX(-50%); font-size: 26px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4)); z-index: 5;">👑</span>
 
                 <!-- Name Ribbon -->
-                <div style="position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); width: 220px; background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #b45309 100%); padding: 6px 10px; border-radius: 8px; border: 2px solid #ffffff; box-shadow: 0 6px 20px rgba(0,0,0,0.3), 0 0 15px rgba(245, 158, 11, 0.4); z-index: 5;">
-                    <div style="font-size: 15px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 0 rgba(255,255,255,0.5);">
+                <div style="position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); min-width: 160px; max-width: 280px; width: max-content; background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #b45309 100%); padding: 6px 15px; border-radius: 8px; border: 2px solid #ffffff; box-shadow: 0 6px 20px rgba(0,0,0,0.3), 0 0 15px rgba(245, 158, 11, 0.4); z-index: 5; display: flex; align-items: center; justify-content: center;">
+                    <div style="font-size: 15px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 1px 0 rgba(255,255,255,0.5); white-space: normal; line-height: 1.2; text-align: center; word-break: break-word;">
                         {{ $employeeOfTheMonth['fullname'] }}
                     </div>
                 </div>
