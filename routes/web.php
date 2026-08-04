@@ -464,6 +464,9 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::get('kpi/company', [KPIController::class, 'companyDashboard'])
         ->name('kpi.company');
+    Route::post('kpi/company/set-dashboard-eotm', [KPIController::class, 'setDashboardEmployeeOfTheMonth'])
+        ->name('kpi.set-dashboard-eotm')
+        ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN]);
     Route::post('kpi/recalculate/{id}', [KPIController::class, 'recalculate'])
         ->name('kpi.recalculate')
         ->middleware(['role:' . Roles::HR_ADMINISTRATOR . ',' . Roles::MASTER_ADMIN, 'throttle:300,1']);

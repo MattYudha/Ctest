@@ -394,6 +394,25 @@
                                     Lihat Profile & Detail <i class="bi bi-arrow-right-short ms-1 fs-5 align-middle"></i>
                                 </a>
                             </div>
+                            
+                            @if($canGenerate ?? false)
+                            <div class="mt-4 pt-3 border-top border-secondary border-opacity-25">
+                                <form action="{{ route('kpi.set-dashboard-eotm') }}" method="POST" class="d-flex flex-column align-items-center">
+                                    @csrf
+                                    <label for="dashboard_period" class="text-white-50 small mb-2"><i class="bi bi-display"></i> Tampilkan di Dashboard Utama</label>
+                                    <div class="input-group input-group-sm w-75 mb-1">
+                                        <input type="month" name="period" id="dashboard_period" class="form-control text-center bg-dark text-white border-secondary" required value="{{ $period }}">
+                                        <button type="submit" class="btn btn-primary fw-bold">Set</button>
+                                    </div>
+                                    @php
+                                        $currentSet = \App\Models\Setting::getValue('dashboard_eotm_period');
+                                    @endphp
+                                    @if($currentSet)
+                                    <small class="text-success" style="font-size: 0.7rem;"><i class="bi bi-check-circle-fill"></i> Aktif di Dashboard: {{ \Carbon\Carbon::createFromFormat('Y-m', $currentSet)->format('F Y') }}</small>
+                                    @endif
+                                </form>
+                            </div>
+                            @endif
                         @else
                             <div class="py-4">
                                 <h5 class="text-white-50 mb-0">Belum Ada Data KPI</h5>

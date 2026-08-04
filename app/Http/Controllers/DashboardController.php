@@ -243,12 +243,18 @@ class DashboardController extends Controller
         /* ================= EMPLOYEE OF THE MONTH (Latest Official) ================= */
         $employeeOfTheMonth = null;
         
-        // Find the most recent period that has been officially generated
-        $latestRecord = EmployeeKPIRecord::orderByDesc('period')->first();
+        // 1. Check if there's a specific period set for the dashboard
+        $targetPeriod = \App\Models\Setting::getValue('dashboard_eotm_period');
         
-        if ($latestRecord) {
-            $targetPeriod = $latestRecord->period;
-            
+        // 2. Validate if the targetPeriod has generated records. If not, or if not set, fallback to latest
+        $hasRecords = $targetPeriod ? EmployeeKPIRecord::where('period', $targetPeriod)->exists() : false;
+        
+        if (!$targetPeriod || !$hasRecords) {
+            $latestRecord = EmployeeKPIRecord::orderByDesc('period')->first();
+            $targetPeriod = $latestRecord ? $latestRecord->period : null;
+        }
+        
+        if ($targetPeriod) {
             // Check cache first for this specific period
             $cachedDashboard = \Illuminate\Support\Facades\Cache::get('company_kpi_dashboard_data');
             

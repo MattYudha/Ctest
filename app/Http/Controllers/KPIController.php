@@ -675,6 +675,28 @@ class KPIController extends Controller
 
         return view('kpi.company', compact('kpiData', 'lastUpdated', 'bestEmployee', 'period', 'periodFormatted', 'isGenerated', 'canGenerate'));
     }
+    /**
+     * Set the period for Employee of the Month to be displayed on the dashboard
+     */
+    public function setDashboardEmployeeOfTheMonth(Request $request)
+    {
+        $user = Auth::user();
+        $roleTitle = $user->employee?->role->title ?? null;
+        if (!in_array($roleTitle, ['HR Administrator', \App\Constants\Roles::MASTER_ADMIN])) {
+            abort(403, 'Hanya HR Administrator atau Master Admin yang dapat mengatur Dashboard.');
+        }
+
+        $request->validate([
+            'period' => 'required|date_format:Y-m',
+        ]);
+
+        \App\Models\Setting::updateOrCreate(
+            ['key' => 'dashboard_eotm_period'],
+            ['value' => $request->period]
+        );
+
+        return redirect()->back()->with('success', 'Employee of the Month periode ' . $request->period . ' berhasil di set untuk tampil di Dashboard.');
+    }
 
     /**
      * Show pending KPI approvals for manager
