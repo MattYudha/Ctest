@@ -124,6 +124,7 @@
         </div>
         <div class="col-md-5 text-end">
             <div class="d-flex justify-content-end align-items-center gap-2">
+                @if(\App\Constants\Roles::isAdmin(session('role')))
                 <form action="{{ route('kpi.sync-employee', $employee->id) }}" method="POST" class="d-inline">
                     @csrf
                     <input type="hidden" name="period" value="{{ $period }}">
@@ -131,6 +132,7 @@
                         <i class="bi bi-arrow-repeat me-1"></i> Sync Live Metrics
                     </button>
                 </form>
+                @endif
                 <button type="button" class="btn btn-sm btn-outline-info shadow-sm" data-bs-toggle="modal" data-bs-target="#auditBreakdownModal">
                     <i class="bi bi-journal-check me-1"></i> Audit Presensi & Log
                 </button>

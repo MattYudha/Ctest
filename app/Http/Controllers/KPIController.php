@@ -33,6 +33,9 @@ class KPIController extends Controller
 
         // Support period navigation via ?period=YYYY-MM
         $period = $request->input('period', now()->format('Y-m'));
+        
+        $isOwner = true;
+        $isExecutive = \App\Constants\Roles::isAdmin(session('role')) || ($user->employee?->role?->title ?? '') === \App\Constants\Roles::MANAGER_UNIT_HEAD;
 
         // Validate period format, fallback to current month if invalid
         if (!preg_match('/^\d{4}-\d{2}$/', $period)) {
@@ -92,7 +95,7 @@ class KPIController extends Controller
         return view('kpi.dashboard', compact(
             'employee', 'period', 'kpiRecords', 'compositeScore', 'performanceLevel',
             'kpisByCategory', 'incidents', 'allKpis',
-            'prevPeriod', 'nextPeriod', 'isCurrentMonth', 'periodCarbon'
+            'prevPeriod', 'nextPeriod', 'isCurrentMonth', 'periodCarbon', 'isOwner', 'isExecutive'
         ));
     }
 
@@ -105,9 +108,10 @@ class KPIController extends Controller
         $user = Auth::user();
         $employee = Employee::findOrFail($id);
 
-        if (($user->employee?->id ?? null) !== $employee->id && !\App\Constants\Roles::isAdmin(session('role')) && ($user->employee?->role?->title ?? '') !== \App\Constants\Roles::MANAGER_UNIT_HEAD) {
-            abort(403, 'Unauthorized');
-        }
+        $isOwner = ($user->employee?->id ?? null) === $employee->id;
+        $isExecutive = \App\Constants\Roles::isAdmin(session('role')) || ($user->employee?->role?->title ?? '') === \App\Constants\Roles::MANAGER_UNIT_HEAD;
+        
+        // Removed abort(403) to allow any authenticated user to view the profile.
 
         $period = request('period', now()->format('Y-m'));
 
@@ -187,6 +191,10 @@ class KPIController extends Controller
      */
     public function syncEmployeeMetrics(Request $request, $id)
     {
+        if (!\App\Constants\Roles::isAdmin(session('role'))) {
+            abort(403, 'Unauthorized. Only Admins can sync live metrics.');
+        }
+
         $employee = Employee::findOrFail($id);
         $period = $request->input('period', now()->format('Y-m'));
 
@@ -667,6 +675,28 @@ class KPIController extends Controller
 
         return view('kpi.company', compact('kpiData', 'lastUpdated', 'bestEmployee', 'period', 'periodFormatted', 'isGenerated', 'canGenerate'));
     }
+    /**
+     * Set the period for Employee of the Month to be displayed on the dashboard
+     */
+    public function setDashboardEmployeeOfTheMonth(Request $request)
+    {
+        $user = Auth::user();
+        $roleTitle = $user->employee?->role->title ?? null;
+        if (!in_array($roleTitle, ['HR Administrator', \App\Constants\Roles::MASTER_ADMIN])) {
+            abort(403, 'Hanya HR Administrator atau Master Admin yang dapat mengatur Dashboard.');
+        }
+
+        $request->validate([
+            'period' => 'required|date_format:Y-m',
+        ]);
+
+        \App\Models\Setting::updateOrCreate(
+            ['key' => 'dashboard_eotm_period'],
+            ['value' => $request->period]
+        );
+
+        return redirect()->back()->with('success', 'Employee of the Month periode ' . $request->period . ' berhasil di set untuk tampil di Dashboard.');
+    }
 
     /**
      * Show pending KPI approvals for manager
@@ -882,9 +912,10 @@ class KPIController extends Controller
         $employee = Employee::findOrFail($id);
 
         // Authorization: User can view their own trend, or managers/HR Administrator can view anyone's
-        if (($user->employee?->id ?? null) !== $employee->id && !\App\Constants\Roles::isAdmin(session('role')) && ($user->employee?->role?->title ?? '') !== \App\Constants\Roles::MANAGER_UNIT_HEAD) {
-            abort(403, 'Unauthorized');
-        }
+        // Modified: Allow any employee to view trends (View Only).
+        // if (($user->employee?->id ?? null) !== $employee->id && !\App\Constants\Roles::isAdmin(session('role')) && ($user->employee?->role?->title ?? '') !== \App\Constants\Roles::MANAGER_UNIT_HEAD) {
+        //     abort(403, 'Unauthorized');
+        // }
 
         $months = (int) $request->input('months', 6); // Default 6 months, min 1, max 12
         $months = max(1, min($months, 12));

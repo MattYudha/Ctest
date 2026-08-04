@@ -660,7 +660,7 @@ body.modal-open {
     $isMasterAdmin = \App\Constants\Roles::isAdmin(session('role'));
 @endphp
 
-@if(!$isMasterAdmin)
+@if($isOwner || $isExecutive)
 <div class="kpi-status-banner status-{{ $submissionStatus }}">
     <div class="d-flex align-items-center gap-4">
         <div class="kpi-status-icon 
@@ -692,7 +692,7 @@ body.modal-open {
         </div>
     </div>
     <div class="mt-3 mt-md-0">
-        @if($submissionStatus === 'draft' || $submissionStatus === 'rejected')
+        @if($isOwner && ($submissionStatus === 'draft' || $submissionStatus === 'rejected'))
             @if($employee->supervisor_id)
             <form action="{{ route('kpi.submit', $employee->id) }}" method="POST" class="d-inline">
                 @csrf

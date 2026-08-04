@@ -327,44 +327,54 @@
                             </li>
                         @endif
 
-                        @if ($showPayrollGroup)
-                            <li class="sidebar-item has-sub {{ $activePayroll || $kpiMenuActive ? 'active' : '' }}">
+                        @if ($isAdmin || $isMasterAdmin || $isFinanceRole)
+                            <li class="sidebar-item has-sub {{ $activePayroll ? 'active' : '' }}">
                                 <a href="#" class="sidebar-link">
                                     <i class="bi bi-cash-stack"></i>
-                                    <span>Payroll & KPI</span>
+                                    <span>Payroll</span>
                                 </a>
-                                <ul class="submenu {{ $activePayroll || $kpiMenuActive ? 'active' : '' }}">
-                                    @if ($isAdmin || $isMasterAdmin || $isFinanceRole)
-                                        <li class="submenu-item {{ $activePayroll ? 'active' : '' }}">
-                                            <a href="{{ url('/payrolls') }}" class="submenu-link">Payrolls</a>
-                                        </li>
-                                    @endif
-
-                                    @if ($isMasterAdmin || $isManager)
-                                        <li class="submenu-item {{ $activeKpiTeam ? 'active' : '' }}">
-                                            <a href="{{ url('/kpi/team') }}" class="submenu-link">Team KPI</a>
-                                        </li>
-                                        <li class="submenu-item {{ $activeKpiDepartment ? 'active' : '' }}">
-                                            <a href="{{ url('/kpi/department') }}" class="submenu-link"
-                                                >Department KPI</a
-                                            >
-                                        </li>
-                                        <li class="submenu-item {{ $activeKpiPending ? 'active' : '' }}">
-                                            <a href="{{ url('/kpi/pending') }}" class="submenu-link"
-                                                >Pending Approvals</a
-                                            >
-                                        </li>
-                                    @endif
-                                    @if ($role === \App\Constants\Roles::MASTER_ADMIN || $role === \App\Constants\Roles::HR_ADMINISTRATOR || $role === 'Administrator' || $isAdmin)
-                                        <li class="submenu-item {{ $activeKpiCompany ? 'active' : '' }}">
-                                            <a href="{{ url('/kpi/company') }}" class="submenu-link"
-                                                >Company KPI</a
-                                            >
-                                        </li>
-                                    @endif
+                                <ul class="submenu {{ $activePayroll ? 'active' : '' }}">
+                                    <li class="submenu-item {{ $activePayroll ? 'active' : '' }}">
+                                        <a href="{{ url('/payrolls') }}" class="submenu-link">Payrolls</a>
+                                    </li>
                                 </ul>
                             </li>
                         @endif
+
+                        <li class="sidebar-item has-sub {{ $kpiMenuActive ? 'active' : '' }}">
+                            <a href="#" class="sidebar-link">
+                                <i class="bi bi-bar-chart-line-fill"></i>
+                                <span>KPI</span>
+                            </a>
+                            <ul class="submenu {{ $kpiMenuActive ? 'active' : '' }}">
+                                @if(!Auth::user()->isMasterAdmin())
+                                    <li class="submenu-item {{ $activeKpiDashboard ? 'active' : '' }}">
+                                        <a href="{{ url('/kpi/dashboard') }}" class="submenu-link">My KPI</a>
+                                    </li>
+                                @endif
+                                @if ($isMasterAdmin || $isManager)
+                                    <li class="submenu-item {{ $activeKpiTeam ? 'active' : '' }}">
+                                        <a href="{{ url('/kpi/team') }}" class="submenu-link">Team KPI</a>
+                                    </li>
+                                    <li class="submenu-item {{ $activeKpiDepartment ? 'active' : '' }}">
+                                        <a href="{{ url('/kpi/department') }}" class="submenu-link"
+                                            >Department KPI</a
+                                        >
+                                    </li>
+                                    <li class="submenu-item {{ $activeKpiPending ? 'active' : '' }}">
+                                        <a href="{{ url('/kpi/pending') }}" class="submenu-link"
+                                            >Pending Approvals</a
+                                        >
+                                    </li>
+                                @endif
+                                <li class="submenu-item {{ $activeKpiCompany ? 'active' : '' }}">
+                                    <a href="{{ url('/kpi/company') }}" class="submenu-link"
+                                        >Company KPI</a
+                                    >
+                                </li>
+                            </ul>
+                        </li>
+
 
                         @if ($isAdmin || $isMasterAdmin || $isManager || $isMarketing || $isSupervisor || $isFinanceRole || $hasInventoryAccess)
                             <li class="sidebar-item has-sub {{ $financeMenuActive ? 'active' : '' }}">
@@ -546,14 +556,6 @@
                             </a>
                         </li>
 
-                        @if(!Auth::user()->isMasterAdmin())
-                        <li class="sidebar-item {{ $activeKpiDashboard ? 'active' : '' }}">
-                            <a href="{{ url('/kpi/dashboard') }}" class="sidebar-link">
-                                <i class="bi bi-bar-chart-line"></i>
-                                <span>My KPI</span>
-                            </a>
-                        </li>
-                        @endif
 
                         <li class="sidebar-item {{ $activeWorkLogs ? 'active' : '' }}">
                             <a href="{{ route('work-logs.index') }}" class="sidebar-link">
