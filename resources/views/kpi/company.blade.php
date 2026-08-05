@@ -7,8 +7,8 @@
             <h3 class="fw-bold text-dark mb-1">Company KPI Dashboard</h3>
             <p class="text-muted mb-0">Performance monitoring & Employee of the Month across company</p>
         </div>
-        <div class="col-md-6 text-right">
-            <div class="d-flex justify-content-end align-items-center flex-wrap gap-2">
+        <div class="col-md-6 text-right mt-3 mt-md-0">
+            <div class="d-flex justify-content-start justify-content-md-end align-items-center flex-wrap gap-2">
                 <form method="GET" class="form-inline d-flex align-items-center me-2">
                     <label class="me-2 fw-bold text-dark mb-0">Period: </label>
                     <input type="month" name="period" value="{{ $period }}" class="form-control" onchange="this.form.submit()">
@@ -59,12 +59,12 @@
         <!-- System Update Status -->
         <div class="row mb-4">
             <div class="col-12">
-                <div class="alert alert-primary d-flex align-items-center justify-content-between border-0 shadow-sm">
+                <div class="alert alert-primary d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 gap-sm-0 border-0 shadow-sm">
                     <div>
                         <i class="bi bi-check-circle-fill me-2"></i>
                         <strong>Last Calculation:</strong> {{ $lastUpdated ? \Carbon\Carbon::parse($lastUpdated)->format('d M Y, H:i') : 'Up to Date' }}
                     </div>
-                    <span class="badge bg-white text-primary px-3 py-2 border shadow-sm">
+                    <span class="badge bg-white text-primary px-3 py-2 border shadow-sm text-wrap text-start mt-2 mt-sm-0">
                         <i class="bi bi-layers-fill me-1"></i> Mode: 2 Indikator (Checkout + Log Kerja)
                     </span>
                 </div>

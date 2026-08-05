@@ -148,8 +148,8 @@
             <h3 class="mb-0 text-dark font-weight-bold">KPI Performance Trend - {{ $employee->fullname }}</h3>
             <p class="text-muted mb-0">{{ $employee->department->name ?? '-' }} • {{ $employee->role?->title ?? 'Staff' }}</p>
         </div>
-        <div class="col-md-5 text-end">
-            <div class="d-flex justify-content-end align-items-center gap-2">
+        <div class="col-md-5 text-end mt-3 mt-md-0">
+            <div class="d-flex justify-content-start justify-content-md-end align-items-center flex-wrap gap-2">
                 <form method="GET" class="d-flex align-items-center gap-2" id="timeRangeForm">
                     <label class="fw-bold text-dark mb-0 me-1">Range: </label>
                     <select name="months" class="form-select form-select-sm" style="width: 175px;" onchange="this.form.submit()">
