@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasColumn('employees', 'profile_photo')) {
-            Schema::table('employees', function (Blueprint $table) {
-                $table->string('profile_photo')->nullable()->after('email');
+        if (!Schema::hasColumn('employee_kpi_records', 'kpi_config_snapshot')) {
+            Schema::table('employee_kpi_records', function (Blueprint $table) {
+                $table->json('kpi_config_snapshot')->nullable()->after('composite_score');
             });
         }
     }
@@ -23,8 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('employees', function (Blueprint $table) {
-            $table->dropColumn('profile_photo');
+        Schema::table('employee_kpi_records', function (Blueprint $table) {
+            $table->dropColumn('kpi_config_snapshot');
         });
     }
 };

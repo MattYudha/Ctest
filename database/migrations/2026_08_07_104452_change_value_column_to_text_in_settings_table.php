@@ -11,11 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasColumn('employees', 'profile_photo')) {
-            Schema::table('employees', function (Blueprint $table) {
-                $table->string('profile_photo')->nullable()->after('email');
-            });
-        }
+        Schema::table('settings', function (Blueprint $table) {
+            $table->longText('value')->nullable()->change();
+        });
     }
 
     /**
@@ -23,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('employees', function (Blueprint $table) {
-            $table->dropColumn('profile_photo');
+        Schema::table('settings', function (Blueprint $table) {
+            $table->string('value', 255)->nullable()->change();
         });
     }
 };

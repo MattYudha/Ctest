@@ -204,30 +204,304 @@ class KPICalculationService
         return $flat;
     }
 
+    public function calculateTaskMetrics()
+    {
+        $startDate = Carbon::createFromFormat('Y-m', $this->period)->startOfMonth();
+        $endDate = Carbon::createFromFormat('Y-m', $this->period)->endOfMonth();
+        
+        $tasks = Task::where('assigned_to', $this->employee->id)
+            ->whereBetween('due_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->get();
+            
+        $total = $tasks->count();
+        $completed = $tasks->where('status', 'completed')->count();
+        
+        $rate = $total > 0 ? ($completed / $total) * 100 : 0;
+        
+        return [
+            'total' => $total,
+            'completed' => $completed,
+            'rate' => round(max(0, min(100, $rate)), 2)
+        ];
+    }
+
+    public function calculateSalesMetrics()
+    {
+        if (!$this->employee->user_id) return ['total' => 0, 'won' => 0, 'rate' => 0];
+
+        $startDate = Carbon::createFromFormat('Y-m', $this->period)->startOfMonth();
+        $endDate = Carbon::createFromFormat('Y-m', $this->period)->endOfMonth();
+        
+        $deals = \App\Models\CrmDeal::where('created_by', $this->employee->user_id)
+            ->whereBetween('created_at', [$startDate->format('Y-m-d 00:00:00'), $endDate->format('Y-m-d 23:59:59')])
+            ->get();
+            
+        $total = $deals->count();
+        $won = $deals->where('status', 'won')->count();
+        
+        $rate = $total > 0 ? ($won / $total) * 100 : 0;
+        
+        return [
+            'total' => $total,
+            'won' => $won,
+            'rate' => round(max(0, min(100, $rate)), 2)
+        ];
+    }
+
+    public function calculateLetterMetrics()
+    {
+        if (!$this->employee->user_id) return ['total' => 0, 'approved' => 0, 'rate' => 0];
+
+        $startDate = Carbon::createFromFormat('Y-m', $this->period)->startOfMonth();
+        $endDate = Carbon::createFromFormat('Y-m', $this->period)->endOfMonth();
+        
+        $letters = \App\Models\Letter::where('user_id', $this->employee->user_id)
+            ->whereBetween('created_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->get();
+            
+        $total = $letters->count();
+        $approved = $letters->where('status', 'approved')->count();
+        
+        $rate = $total > 0 ? ($approved / $total) * 100 : 0;
+        
+        return [
+            'total' => $total,
+            'approved' => $approved,
+            'rate' => round(max(0, min(100, $rate)), 2)
+        ];
+    }
+
     /**
-     * Calculate 2-metric KPI (Checkout Compliance & Work Log %) for an employee
+     * Calculate Cashbook / Financial Claim Metrics (Opsi A SLA Finance & Opsi B Claims)
+     */
+    public function calculateCashbookMetrics()
+    {
+        $startDate = Carbon::createFromFormat('Y-m', $this->period)->startOfMonth();
+        $endDate = Carbon::createFromFormat('Y-m', $this->period)->endOfMonth();
+        $roleName = strtolower($this->employee->role ? $this->employee->role->title : '');
+
+        $isFinance = str_contains($roleName, 'finance') || str_contains($roleName, 'keuangan') || str_contains($roleName, 'accounting');
+
+        if ($isFinance) {
+            // Opsi A: SLA Input Transaksi Kas (<= 2 Hari Kerja dari tanggal kejadian)
+            if (!$this->employee->user) {
+                return ['is_na' => true, 'total' => 0, 'on_time' => 0, 'rate' => 0];
+            }
+
+            $transactions = \App\Models\FinancialTransaction::where('created_by', $this->employee->user->id)
+                ->whereBetween('created_at', [$startDate->format('Y-m-d 00:00:00'), $endDate->format('Y-m-d 23:59:59')])
+                ->get();
+
+            $total = $transactions->count();
+
+            if ($total === 0) {
+                // 0 Transaksi di bulan ini -> N/A (Redistribusi proporsional)
+                return ['is_na' => true, 'total' => 0, 'on_time' => 0, 'rate' => 0];
+            }
+
+            // Using Laravel's diffInDaysFiltered to calculate business days
+            // Note: Carbon has diffInDaysFiltered to exclude weekends.
+            $onTime = $transactions->filter(function($tx) {
+                $tDate = Carbon::parse($tx->transaction_date)->startOfDay();
+                $cDate = Carbon::parse($tx->created_at)->startOfDay();
+                
+                // Cek jika tDate lebih besar (impossible di dunia nyata tapi just in case)
+                if ($cDate->isBefore($tDate)) return true;
+
+                // Hitung selisih hari kerja (tanpa Sabtu dan Minggu)
+                $businessDays = $tDate->diffInDaysFiltered(function (Carbon $date) {
+                    return !$date->isWeekend();
+                }, $cDate);
+
+                return $businessDays <= 2;
+            })->count();
+
+            $rate = ($onTime / $total) * 100;
+
+            return [
+                'is_na' => false,
+                'total' => $total,
+                'on_time' => $onTime,
+                'rate' => round(max(0, min(100, $rate)), 2)
+            ];
+        } else {
+            // Opsi B: General Employee Claims / Reimbursement (Filter Hanging Status)
+            $claims = \App\Models\FinancialClaim::where('employee_id', $this->employee->id)
+                ->whereIn('status', ['approved', 'rejected']) // Hanya klaim yang siklusnya selesai
+                ->whereBetween('created_at', [$startDate->format('Y-m-d 00:00:00'), $endDate->format('Y-m-d 23:59:59')])
+                ->get();
+
+            $total = $claims->count();
+
+            if ($total === 0) {
+                // 0 Pengajuan klaim (yang selesai) -> N/A (Redistribusi proporsional agar tidak dihukum)
+                return ['is_na' => true, 'total' => 0, 'approved' => 0, 'rate' => 0];
+            }
+
+            $approved = $claims->where('status', 'approved')->count();
+            $rate = ($approved / $total) * 100;
+
+            return [
+                'is_na' => false,
+                'total' => $total,
+                'approved' => $approved,
+                'rate' => round(max(0, min(100, $rate)), 2)
+            ];
+        }
+    }
+
+    public static function getMasterKPIConfig()
+    {
+        $defaultConfig = [
+            ['key' => 'presence', 'label' => 'Presensi (Checkout)', 'desc' => 'Kehadiran fisik & kepatuhan jam kerja.', 'weight' => 50, 'applicable_roles' => ['*']],
+            ['key' => 'worklog', 'label' => 'Log Kerja Harian', 'desc' => 'Pengisian & verifikasi laporan aktivitas kerja.', 'weight' => 50, 'applicable_roles' => ['*']],
+            ['key' => 'task', 'label' => 'Penyelesaian Tugas', 'desc' => 'Persentase penyelesaian tugas pada bulan berjalan.', 'weight' => 0, 'applicable_roles' => ['*']],
+            ['key' => 'sales', 'label' => 'Target Sales / Deal', 'desc' => 'Persentase deal yang berhasil dimenangkan.', 'weight' => 0, 'applicable_roles' => ['Sales']],
+            ['key' => 'letter', 'label' => 'Pengelolaan Surat', 'desc' => 'Persentase surat yang disetujui.', 'weight' => 0, 'applicable_roles' => ['*']],
+            ['key' => 'cashbook', 'label' => 'Buku Kas / Cashbook', 'desc' => 'Disiplin input kas SLA <=24j (Finance) / Status klaim (Staf).', 'weight' => 0, 'applicable_roles' => ['*']],
+        ];
+
+        $savedConfig = \App\Models\Setting::getValue('kpi_master_config');
+        if ($savedConfig) {
+            $parsed = json_decode($savedConfig, true);
+            if (is_array($parsed)) {
+                return $parsed;
+            }
+        }
+        return $defaultConfig;
+    }
+
+    /**
+     * Calculate dynamic metrics based on Master KPI configuration (with N/A redistribution)
+     */
+    public static function calculateDynamicMetricsForEmployee(Employee $employee, $period = null, $snapshotConfig = null)
+    {
+        $service = new self($employee, $period);
+        
+        // 1. Get configuration
+        $config = $snapshotConfig ?? self::getMasterKPIConfig();
+        
+        // 1. Ambil semua Role karyawan dengan aman (Null-safe & Multi-role support)
+        // Employee di Corevo terhubung langsung ke Role via role_id, bukan pivot di User, 
+        // namun kita tetap tangani sebagai array untuk multi-role masa depan dan null-safety.
+        $employeeRoles = [];
+        if ($employee->role) {
+            $employeeRoles[] = $employee->role->title;
+        }
+
+        // Jika tidak ada role sama sekali, kita bisa set sebuah role fallback virtual
+        if (empty($employeeRoles)) {
+            $employeeRoles = ['Unassigned_Staff'];
+        }
+        
+        $activeIndicators = [];
+        $totalActiveWeight = 0;
+        
+        // 2. Filter applicable metrics and sum original weights
+        foreach ($config as $indicator) {
+            if ($indicator['weight'] <= 0) continue;
+            
+            // Hard-mapping check for N/A
+            $applicableRoles = $indicator['applicable_roles'] ?? [];
+            $isApplicable = in_array('*', $applicableRoles) || !empty(array_intersect($employeeRoles, $applicableRoles));
+            
+            if ($isApplicable) {
+                // Calculate actual rate
+                $rate = 0;
+                $raw = [];
+                switch ($indicator['key']) {
+                    case 'presence':
+                        $raw = $service->calculateCheckoutMetrics();
+                        $rate = $raw['checkout_compliance'] ?? 0;
+                        break;
+                    case 'worklog':
+                        $raw = $service->calculateLogMetrics();
+                        $rate = $raw['log_percentage'] ?? 0;
+                        break;
+                    case 'task':
+                        $raw = $service->calculateTaskMetrics();
+                        $rate = $raw['rate'] ?? 0;
+                        break;
+                    case 'sales':
+                        $raw = $service->calculateSalesMetrics();
+                        $rate = $raw['rate'] ?? 0;
+                        break;
+                    case 'letter':
+                        $raw = $service->calculateLetterMetrics();
+                        $rate = $raw['rate'] ?? 0;
+                        break;
+                    case 'cashbook':
+                        $raw = $service->calculateCashbookMetrics();
+                        if (!empty($raw['is_na'])) {
+                            $isApplicable = false; // Trigger N/A redistribution
+                        } else {
+                            $rate = $raw['rate'] ?? 0;
+                        }
+                        break;
+                }
+                
+                if ($isApplicable) {
+                    $activeIndicators[] = [
+                        'key' => $indicator['key'],
+                        'label' => $indicator['label'],
+                        'desc' => $indicator['desc'] ?? '',
+                        'original_weight' => $indicator['weight'],
+                        'rate' => $rate,
+                        'raw' => $raw
+                    ];
+                    $totalActiveWeight += $indicator['weight'];
+                }
+            }
+        }
+        
+        // 3. Division by Zero check (All N/A)
+        if ($totalActiveWeight === 0) {
+            return [
+                'score' => 0,
+                'level' => 'na',
+                'active_indicators' => [],
+                'details' => [],
+                'checkout_pct' => 0,
+                'log_pct' => 0,
+                'working_days' => 20,
+                'unique_log_days' => 0,
+                'checkout_count' => 0,
+            ];
+        }
+        
+        // 4. Proportional Redistribution
+        $compositeScore = 0;
+        $details = [];
+        foreach ($activeIndicators as &$active) {
+            $newWeight = ($active['original_weight'] / $totalActiveWeight) * 100;
+            $active['actual_weight'] = round($newWeight, 2);
+            
+            $compositeScore += ($active['rate'] * ($newWeight / 100));
+            $details[$active['key']] = $active;
+        }
+        
+        $compositeScore = round(max(0, min(100, $compositeScore)), 2);
+        
+        return [
+            'score' => $compositeScore,
+            'level' => self::getPerformanceLevel($compositeScore),
+            'active_indicators' => $activeIndicators,
+            'details' => $details,
+            // Legacy fallbacks
+            'checkout_pct' => $details['presence']['rate'] ?? 0,
+            'log_pct' => $details['worklog']['rate'] ?? 0,
+            'checkout_count' => $details['presence']['raw']['checkout_count'] ?? 0,
+            'unique_log_days' => $details['worklog']['raw']['unique_log_days'] ?? 0,
+            'working_days' => $details['worklog']['raw']['expected_working_days'] ?? ($details['presence']['raw']['expected_working_days'] ?? 20),
+        ];
+    }
+
+    /**
+     * Legacy wrapper for backward compatibility with existing views.
      */
     public static function calculateDualMetricsForEmployee(Employee $employee, $period = null)
     {
-        $service = new self($employee, $period);
-        $checkoutMetrics = $service->calculateCheckoutMetrics();
-        $logMetrics = $service->calculateLogMetrics();
-
-        $checkoutPct = $checkoutMetrics['checkout_compliance'] ?? 0;
-        $logPct = $logMetrics['log_percentage'] ?? 0;
-
-        $compositeScore = round(max(0, min(100, ($checkoutPct + $logPct) / 2)), 2);
-        $level = self::getPerformanceLevel($compositeScore);
-
-        return [
-            'checkout_pct' => $checkoutPct,
-            'log_pct' => $logPct,
-            'score' => $compositeScore,
-            'level' => $level,
-            'working_days' => $logMetrics['expected_working_days'] ?? $checkoutMetrics['expected_working_days'] ?? 20,
-            'unique_log_days' => $logMetrics['unique_log_days'] ?? 0,
-            'checkout_count' => $checkoutMetrics['checkout_count'] ?? 0,
-        ];
+        return self::calculateDynamicMetricsForEmployee($employee, $period);
     }
 
     /**
@@ -244,7 +518,6 @@ class KPICalculationService
 
     /**
      * Calculate weighted score for a collection of KPI records
-     * Expected: collection of objects with 'achievement_percentage' and 'weight'
      */
     public static function calculateWeightedScore($kpiRecords)
     {
@@ -256,7 +529,6 @@ class KPICalculationService
         $totalWeight = 0;
 
         foreach ($kpiRecords as $record) {
-            // Support both Model (EmployeeKPIRecord) and Proxy
             $achievement = method_exists($record, 'getAchievementPercentage') 
                 ? $record->getAchievementPercentage() 
                 : ($record->composite_score ?? 0);
@@ -270,10 +542,7 @@ class KPICalculationService
         }
 
         $finalScore = $totalWeight > 0 ? $totalWeightedScore / $totalWeight : 0;
-        
-        // Clamping to ensure composite score doesn't exceed 100 or fall below 0
         $finalScore = max(0, min(100, $finalScore));
-        
         $level = self::getPerformanceLevel($finalScore);
 
         return [

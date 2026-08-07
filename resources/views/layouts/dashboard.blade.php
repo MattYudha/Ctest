@@ -189,7 +189,7 @@
                                 $activePositions ||
                                 $activeHolidaysManagement;
                             $crmMenuActive = $activeCrmDashboard || $activeCrmBoard || $activeCrmContacts || $activeCrmEmailBlasts || $activeCrmWaBlasts || $activeCrmTemplates || $activeCrmEmailInbox;
-                            $kpiMenuActive = $activeKpiDashboard || $activeKpiTeam || $activeKpiDepartment || $activeKpiPending || $activeKpiCompany;
+                            $kpiMenuActive = $activeKpiDashboard || $activeKpiTeam || $activeKpiDepartment || $activeKpiPending || $activeKpiCompany || request()->is('kpi-masters*');
                             $financeMenuActive =
                                 $activeFinanceTransactions ||
                                 $activeFinanceEntities ||
@@ -372,6 +372,13 @@
                                         >Company KPI</a
                                     >
                                 </li>
+                                @if ($isAdmin || $isMasterAdmin)
+                                    <li class="submenu-item {{ request()->is('kpi-masters*') ? 'active' : '' }}">
+                                        <a href="{{ route('kpi-masters.index') }}" class="submenu-link"
+                                            >Master KPI Config</a
+                                        >
+                                    </li>
+                                @endif
                             </ul>
                         </li>
 
