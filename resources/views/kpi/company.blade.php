@@ -65,7 +65,18 @@
                         <strong>Last Calculation:</strong> {{ $lastUpdated ? \Carbon\Carbon::parse($lastUpdated)->format('d M Y, H:i') : 'Up to Date' }}
                     </div>
                     <span class="badge bg-white text-primary px-3 py-2 border shadow-sm text-wrap text-start mt-2 mt-sm-0">
-                        <i class="bi bi-layers-fill me-1"></i> Mode: 2 Indikator (Checkout + Log Kerja)
+                        @php
+                            $activeKpis = collect(\App\Services\KPICalculationService::getMasterKPIConfig())->filter(function($k) { return $k['weight'] > 0; });
+                            $activeCount = $activeKpis->count();
+                            $activeNames = $activeKpis->pluck('label')->implode(', ');
+                        @endphp
+                        <i class="bi bi-layers-fill me-1"></i> 
+                        @if($activeCount > 2)
+                            Mode: {{ $activeCount }} Indikator Aktif 
+                            <i class="bi bi-info-circle ms-1 text-primary" data-bs-toggle="tooltip" title="{{ $activeNames }}" style="cursor:help;"></i>
+                        @else
+                            Mode: {{ $activeCount }} Indikator ({{ $activeNames }})
+                        @endif
                     </span>
                 </div>
             </div>
@@ -495,7 +506,20 @@
                     <div class="d-flex align-items-center gap-3">
                         <i class="bi bi-info-circle-fill text-primary fs-4"></i>
                         <div class="text-dark" style="font-size: 0.95rem;">
-                            <strong>Catatan Perhitungan:</strong> Nilai <strong>Composite Score</strong> masing-masing karyawan pada tabel di bawah ini merupakan akumulasi performa yang dihitung dari bobot <strong>50% Kepatuhan Checkout Presensi</strong> dan <strong>50% Pengisian Log Pekerjaan Harian</strong>.
+                            @php
+                                $kpiConfig = \App\Services\KPICalculationService::getMasterKPIConfig();
+                                $activeIndicatorsStr = '';
+                                $items = collect($kpiConfig)->filter(function($item) { return $item['weight'] > 0; })->values();
+                                if ($items->count() > 1) {
+                                    $last = $items->pop();
+                                    $activeIndicatorsStr = $items->map(function($item) { return "<strong>{$item['weight']}% {$item['label']}</strong>"; })->implode(', ') . " dan <strong>{$last['weight']}% {$last['label']}</strong>";
+                                } elseif ($items->count() === 1) {
+                                    $activeIndicatorsStr = "<strong>{$items[0]['weight']}% {$items[0]['label']}</strong>";
+                                } else {
+                                    $activeIndicatorsStr = "Belum ada konfigurasi indikator KPI yang diaktifkan (bobot 0%).";
+                                }
+                            @endphp
+                            <strong>Catatan Perhitungan:</strong> Nilai <strong>Composite Score</strong> masing-masing karyawan pada tabel di bawah ini merupakan akumulasi performa yang dihitung dari bobot {!! $activeIndicatorsStr !!}.
                         </div>
                     </div>
                 </div>
@@ -506,8 +530,19 @@
         <div class="row">
             <div class="col-12">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-white py-3">
+                    <div class="card-header bg-white py-3 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
                         <h5 class="card-title mb-0">Detailed Employee Performance Metrics</h5>
+                        <div class="d-flex flex-wrap gap-3 text-muted" style="font-size: 0.75rem;">
+                            <div class="d-flex align-items-center gap-1" data-bs-toggle="tooltip" title="Nilai mencapai atau melebihi target">
+                                <div style="width: 10px; height: 10px; border-radius: 50%;" class="bg-success"></div> Tercapai (≥100%)
+                            </div>
+                            <div class="d-flex align-items-center gap-1" data-bs-toggle="tooltip" title="Nilai di bawah target namun masih dapat diterima">
+                                <div style="width: 10px; height: 10px; border-radius: 50%;" class="bg-warning"></div> Kurang Optimal (75-99%)
+                            </div>
+                            <div class="d-flex align-items-center gap-1" data-bs-toggle="tooltip" title="Nilai jauh di bawah target">
+                                <div style="width: 10px; height: 10px; border-radius: 50%;" class="bg-danger"></div> Tidak Tercapai (<75%)
+                            </div>
+                        </div>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -517,10 +552,10 @@
                                         <th class="px-4">Rank</th>
                                         <th>Employee Name</th>
                                         <th>Department / Role</th>
-                                        <th class="text-center">Working Days</th>
-                                        <th class="text-center">Log Count</th>
-                                        <th>Checkout Compliance</th>
-                                        <th>Log Compliance</th>
+                                        <th>
+                                            Indikator Aktif
+                                            <i class="bi bi-info-circle text-primary ms-1 cursor-pointer" data-bs-toggle="tooltip" title="Setiap titik mewakili 1 metrik KPI. Sorot (hover) titik untuk melihat nama metrik dan nilainya."></i>
+                                        </th>
                                         <th>Composite Score</th>
                                         <th class="text-center">Action</th>
                                     </tr>
@@ -555,25 +590,16 @@
                                             <div class="fw-bold text-secondary">{{ $data['department'] }}</div>
                                             <small class="text-muted">{{ $data['position'] }}</small>
                                         </td>
-                                        <td class="text-center">
-                                            <span class="badge kpi-metric-badge border">{{ $data['working_days'] ?? '-' }} Days</span>
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="badge kpi-metric-badge border">{{ $data['log_count'] ?? '-' }} Logs</span>
-                                        </td>
                                         <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="text-{{ $data['checkout_percentage'] >= 100 ? 'success' : ($data['checkout_percentage'] >= 75 ? 'warning' : 'danger') }} fw-bold">
-                                                    {{ round($data['checkout_percentage'], 1) }}%
-                                                </span>
+                                            <div class="d-flex gap-1 mb-1" data-bs-toggle="tooltip" title="Status Metrik Aktif">
+                                                @forelse($data['details'] ?? [] as $key => $detail)
+                                                    @php $rate = $detail['rate']; @endphp
+                                                    <div style="width: 12px; height: 12px; border-radius: 50%;" class="bg-{{ $rate >= 100 ? 'success' : ($rate >= 75 ? 'warning' : 'danger') }}" title="{{ $detail['label'] }}: {{ round($rate,1) }}%"></div>
+                                                @empty
+                                                    <span class="text-muted small">N/A</span>
+                                                @endforelse
                                             </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="text-{{ $data['log_percentage'] >= 100 ? 'success' : ($data['log_percentage'] >= 75 ? 'warning' : 'danger') }} fw-bold">
-                                                    {{ round($data['log_percentage'], 1) }}%
-                                                </span>
-                                            </div>
+                                            <small class="text-muted" style="font-size: 0.7rem;">{{ count($data['details'] ?? []) }} Indikator</small>
                                         </td>
                                         <td>
                                             <span class="badge rounded-pill bg-{{ $data['composite_score'] >= 80 ? 'success' : ($data['composite_score'] >= 60 ? 'warning' : 'danger') }} px-3 py-2">
@@ -581,12 +607,22 @@
                                             </span>
                                         </td>
                                         <td class="text-center">
-                                            <a href="{{ route('kpi.show', $data['employee_id']) }}" class="btn btn-sm btn-outline-primary rounded-pill">Lihat Profile</a>
+                                            <div class="d-flex justify-content-center gap-1">
+                                                <button type="button" class="btn btn-sm btn-primary rounded-pill btn-detail-kpi px-3" 
+                                                    data-bs-toggle="offcanvas" 
+                                                    data-bs-target="#kpiOffcanvas" 
+                                                    data-kpi="{{ json_encode($data) }}">
+                                                    <i class="bi bi-grid-fill me-1"></i> Detail
+                                                </button>
+                                                <a href="{{ route('kpi.show', $data['employee_id']) }}" class="btn btn-sm btn-outline-secondary rounded-circle" title="View Profile">
+                                                    <i class="bi bi-person"></i>
+                                                </a>
+                                            </div>
                                         </td>
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="9" class="text-center py-5 text-muted">
+                                        <td colspan="{{ 5 + count($activeMasterIndicators) }}" class="text-center py-5 text-muted">
                                             <i class="bi bi-folder2-open" style="font-size: 3rem;"></i>
                                             <p class="mt-3">No KPI Data Available. System will calculate automatically at midnight or run the command manually.</p>
                                         </td>
@@ -603,6 +639,36 @@
     </div>
 </div>
 
+<!-- KPI Detail Offcanvas -->
+<div class="offcanvas offcanvas-end border-0 shadow-lg" tabindex="-1" id="kpiOffcanvas" aria-labelledby="kpiOffcanvasLabel" style="width: 480px; background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);">
+    <div class="offcanvas-header border-bottom-0 bg-transparent pb-0 mt-3 px-4">
+        <div class="d-flex align-items-center gap-3">
+            <div id="oc-photo" class="rounded-circle bg-white text-primary fw-bold d-flex align-items-center justify-content-center shadow-sm" style="width: 56px; height: 56px; font-size: 1.4rem; border: 3px solid #fff;"></div>
+            <div>
+                <h5 class="offcanvas-title fw-bolder mb-0 text-dark" id="kpiOffcanvasLabel" style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;">Employee Name</h5>
+                <small class="text-secondary fw-medium" id="oc-role" style="letter-spacing: 0.5px;">Role / Dept</small>
+            </div>
+        </div>
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-4 pt-3">
+        <!-- Main Score -->
+        <div class="card border-0 mb-4 rounded-4" style="background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05); border: 1px solid rgba(255, 255, 255, 0.4);">
+            <div class="card-body text-center p-4">
+                <h6 class="text-uppercase fw-bold mb-2" style="letter-spacing: 1.5px; color: #64748b; font-size: 0.75rem;">Composite Score</h6>
+                <div class="display-3 fw-bold" id="oc-score" style="color: #0f172a; text-shadow: 0 2px 10px rgba(0,0,0,0.05);">0</div>
+            </div>
+        </div>
+        
+        <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-dark" style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;">
+            <i class="bi bi-layers text-primary p-2 bg-primary bg-opacity-10 rounded-3"></i> Rincian Matriks Performa
+        </h6>
+        <div id="oc-details-container" class="d-flex flex-column gap-3">
+            <!-- JS populated -->
+        </div>
+    </div>
+</div>
+
 @if($nextUpdate ?? false)
 <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -610,6 +676,7 @@
         const countDownDate = new Date(nextUpdateStr.replace(/-/g, "/")).getTime(); 
 
         const timerEl = document.getElementById("countdownTimer");
+        if (!timerEl) return;
         
         const x = setInterval(function() {
             const now = new Date().getTime();
@@ -630,6 +697,82 @@
     });
 </script>
 @endif
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const offcanvasEl = document.getElementById('kpiOffcanvas');
+        if (offcanvasEl) {
+            offcanvasEl.addEventListener('show.bs.offcanvas', function (event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+                
+                try {
+                    const data = JSON.parse(button.getAttribute('data-kpi'));
+                    
+                    // Populate Header
+                    document.getElementById('kpiOffcanvasLabel').innerText = data.fullname || '-';
+                    document.getElementById('oc-role').innerText = (data.position || 'Staff') + ' | ' + (data.department || '-');
+                    document.getElementById('oc-score').innerText = parseFloat(data.composite_score || 0).toFixed(2);
+                    
+                    // Set text color based on score (Soft colors)
+                    const scoreEl = document.getElementById('oc-score');
+                    if(data.composite_score >= 80) scoreEl.style.color = "#059669"; // Emerald
+                    else if(data.composite_score >= 60) scoreEl.style.color = "#d97706"; // Amber
+                    else scoreEl.style.color = "#e11d48"; // Rose
+
+                    // Populate Photo
+                    const photoEl = document.getElementById('oc-photo');
+                    if (data.photo) {
+                        photoEl.innerHTML = `<img src="/storage/${data.photo}" alt="${data.fullname}" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;" />`;
+                    } else {
+                        photoEl.innerHTML = data.fullname ? data.fullname.substring(0, 1).toUpperCase() : '?';
+                    }
+
+                    // Populate Details
+                    const container = document.getElementById('oc-details-container');
+                    container.innerHTML = '';
+
+                    if (data.details && typeof data.details === 'object' && Object.keys(data.details).length > 0) {
+                        Object.values(data.details).forEach(detail => {
+                            const rate = parseFloat(detail.rate || 0);
+                            const weight = parseFloat(detail.actual_weight || 0);
+                            const point = (rate * (weight / 100)).toFixed(2);
+                            
+                            let colorTheme = { bg: 'danger', text: 'danger', hex: '#fb7185' }; // Soft Rose
+                            if (rate >= 100) colorTheme = { bg: 'success', text: 'success', hex: '#34d399' }; // Soft Emerald
+                            else if (rate >= 75) colorTheme = { bg: 'warning', text: 'warning', hex: '#fbbf24' }; // Soft Amber
+
+                            const html = `
+                            <div class="card border-0 rounded-4" style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03); border: 1px solid rgba(255, 255, 255, 0.5); overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.03)';">
+                                <div class="position-absolute top-0 start-0 h-100" style="width: 4px; background-color: ${colorTheme.hex};"></div>
+                                <div class="card-body p-3 ps-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="fw-bold text-dark fs-6" style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;">${detail.label || 'Indikator'}</div>
+                                        <div class="badge rounded-pill bg-${colorTheme.bg} bg-opacity-10 text-${colorTheme.text} px-3 py-2 fw-bold" style="letter-spacing: 0.5px;">${rate.toFixed(1)}%</div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center rounded-3 p-2 mt-3" style="background: rgba(241, 245, 249, 0.7);">
+                                        <div class="text-secondary fw-medium" style="font-size: 0.75rem;">
+                                            <i class="bi bi-calculator me-1 opacity-75"></i> ${rate.toFixed(1)} x ${weight}% Bobot
+                                        </div>
+                                        <div class="fw-bold" style="font-size: 0.85rem; color: #334155;">
+                                            +${point} Poin
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                            container.insertAdjacentHTML('beforeend', html);
+                        });
+                    } else {
+                        container.innerHTML = '<div class="alert alert-secondary border-0 rounded-4" style="background: rgba(255,255,255,0.7);"><i class="bi bi-info-circle me-2"></i>Belum ada data metrik tersedia.</div>';
+                    }
+                } catch (e) {
+                    console.error("Failed to parse KPI data", e);
+                }
+            });
+        }
+    });
+</script>
 
 @if($canGenerate ?? false)
 <!-- Confirmation Modal for Recalculate KPI -->

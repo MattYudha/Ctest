@@ -274,7 +274,7 @@
                         <h5 class="card-title mb-0 fw-bold text-dark">
                             <i class="bi bi-bar-chart-line-fill text-info me-2"></i>Metric Comparison
                         </h5>
-                        <span class="badge bg-info bg-opacity-10 text-info px-3 py-1 rounded-pill fw-bold">Checkout vs Log %</span>
+                        <span class="badge bg-info bg-opacity-10 text-info px-3 py-1 rounded-pill fw-bold">Indikator Dinamis</span>
                     </div>
                     <div class="card-body">
                         <div id="metricComparisonChart" style="width: 100%; min-height: 300px;"></div>
@@ -299,8 +299,7 @@
                                 <thead>
                                     <tr>
                                         <th>Period</th>
-                                        <th>Checkout Compliance</th>
-                                        <th>Work Log Submission</th>
+                                        <th>Rincian Indikator</th>
                                         <th>Composite Score</th>
                                         <th>Performance Level</th>
                                         <th class="text-end">Growth Delta</th>
@@ -311,19 +310,20 @@
                                     <tr>
                                         <td><strong class="text-dark">{{ $data['period_label'] }}</strong></td>
                                         <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="fw-bold text-dark">{{ round($data['checkout_pct'], 1) }}%</span>
-                                                <div class="progress flex-grow-1" style="height: 5px; max-width: 80px; border-radius: 10px;">
-                                                    <div class="progress-bar bg-info" style="width: {{ min($data['checkout_pct'], 100) }}%;"></div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="fw-bold text-dark">{{ round($data['log_pct'], 1) }}%</span>
-                                                <div class="progress flex-grow-1" style="height: 5px; max-width: 80px; border-radius: 10px;">
-                                                    <div class="progress-bar bg-success" style="width: {{ min($data['log_pct'], 100) }}%;"></div>
-                                                </div>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                @if(isset($data['details']) && count($data['details']) > 0)
+                                                    @foreach($data['details'] as $key => $detail)
+                                                        @php
+                                                            $rate = $detail['rate'] ?? 0;
+                                                            $colorClass = $rate >= 100 ? 'success' : ($rate >= 75 ? 'warning' : 'danger');
+                                                        @endphp
+                                                        <span class="badge bg-{{ $colorClass }} bg-opacity-10 text-{{ $colorClass }} border border-{{ $colorClass }} border-opacity-25 px-2 py-1 rounded-pill shadow-sm">
+                                                            {{ $detail['label'] ?? 'Metrik' }}: {{ round($rate, 1) }}%
+                                                        </span>
+                                                    @endforeach
+                                                @else
+                                                    <span class="text-muted fst-italic small">N/A</span>
+                                                @endif
                                             </div>
                                         </td>
                                         <td>
@@ -386,8 +386,42 @@
 
         const labels = {!! json_encode(array_column($trendData, 'period_label')) !!};
         const scores = {!! json_encode(array_column($trendData, 'composite_score')) !!};
-        const checkoutPcts = {!! json_encode(array_column($trendData, 'checkout_pct')) !!};
-        const logPcts = {!! json_encode(array_column($trendData, 'log_pct')) !!};
+        const trendDataRaw = {!! json_encode($trendData) !!};
+
+        // Dynamically build series for Metric Comparison Chart
+        let dynamicSeries = [];
+        let dynamicColors = ['#0284c7', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
+        
+        // Find the latest period's details to determine the active indicators
+        let latestDetails = {};
+        if (trendDataRaw.length > 0) {
+            latestDetails = trendDataRaw[trendDataRaw.length - 1].details || {};
+        }
+
+        let colorIndex = 0;
+        for (const key in latestDetails) {
+            if (Object.hasOwnProperty.call(latestDetails, key)) {
+                const label = latestDetails[key].label || key;
+                // Map this key across all periods
+                const dataPoints = trendDataRaw.map(periodData => {
+                    if (periodData.details && periodData.details[key]) {
+                        return parseFloat(periodData.details[key].rate || 0).toFixed(1);
+                    }
+                    return 0;
+                });
+                
+                dynamicSeries.push({
+                    name: label + ' %',
+                    data: dataPoints
+                });
+                colorIndex++;
+            }
+        }
+        
+        // If somehow no details exist, provide a fallback
+        if (dynamicSeries.length === 0) {
+            dynamicSeries = [{ name: 'No Data', data: trendDataRaw.map(() => 0) }];
+        }
 
         // 1. OVERALL COMPOSITE SCORE AREA CHART
         const overallOptions = {
@@ -435,19 +469,16 @@
         const overallChart = new ApexCharts(document.querySelector("#overallTrendChart"), overallOptions);
         overallChart.render();
 
-        // 2. DUAL METRIC COMPARISON BAR CHART
+        // 2. DYNAMIC METRIC COMPARISON BAR CHART
         const metricOptions = {
-            series: [
-                { name: 'Checkout Compliance %', data: checkoutPcts },
-                { name: 'Work Log Submission %', data: logPcts }
-            ],
+            series: dynamicSeries,
             chart: {
                 type: 'bar',
                 height: 310,
                 background: 'transparent',
                 toolbar: { show: false }
             },
-            colors: ['#0284c7', '#10b981'],
+            colors: dynamicColors.slice(0, dynamicSeries.length),
             plotOptions: {
                 bar: {
                     borderRadius: 5,

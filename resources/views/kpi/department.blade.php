@@ -276,51 +276,7 @@
             </div>
         @else
 
-        <!-- Objective Scoring Guidance Banner Card (Dark Mode Compatible) -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card border-0 shadow-sm border-start border-info border-4 bg-info bg-opacity-10">
-                    <div class="card-body p-3">
-                        <div class="d-flex align-items-start gap-3">
-                            <div class="rounded-circle bg-info bg-opacity-25 text-info p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
-                                <i class="bi bi-info-circle-fill fs-5"></i>
-                            </div>
-                            <div class="w-100">
-                                <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between mb-1 gap-1 gap-sm-0">
-                                    <h6 class="fw-bold mb-0">Panduan Transparansi & Perhitungan Objektif KPI Divisi</h6>
-                                    <span class="badge bg-info text-white fw-bold text-wrap text-start mt-1 mt-sm-0">100% Objektif & Otomatis</span>
-                                </div>
-                                <p class="text-muted fs-7 mb-2">
-                                    Penilaian kinerja divisi dihitung secara objektif berdasarkan gabungan <strong>2 indikator riil (bobot 50:50)</strong> dari seluruh karyawan dalam divisi terkait:
-                                </p>
-                                <div class="row g-2 fs-7">
-                                    <div class="col-12 col-md-4">
-                                        <div class="p-2 rounded border bg-body-tertiary bg-opacity-75 d-flex align-items-center gap-2">
-                                            <span class="badge bg-success">50%</span>
-                                            <span><strong>Presensi (Checkout):</strong> Kehadiran fisik & kepatuhan jam kerja.</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-md-4">
-                                        <div class="p-2 rounded border bg-body-tertiary bg-opacity-75 d-flex align-items-center gap-2">
-                                            <span class="badge bg-primary">50%</span>
-                                            <span><strong>Log Kerja Harian:</strong> Pengisian & verifikasi laporan aktivitas kerja.</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-md-4">
-                                        <div class="p-2 rounded border bg-body-tertiary bg-opacity-75 d-flex align-items-center gap-2">
-                                            <span class="badge bg-warning text-dark">% Persentase</span>
-                                            <span><strong>Sebaran Staf:</strong> Proporsi staf pada kategori (contoh: <code>1/11 (9.1%)</code> = 1 staf dari total 11 staf).</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        @if($selectedDepartment)
+        <!-- Dynamic KPI Configuration applied, Legacy Banner Removed -->        @if($selectedDepartment)
         <!-- Department Banner Card -->
         <div class="row mb-4">
             <div class="col-12">
@@ -639,18 +595,30 @@
                         <h5 class="card-title mb-0 fw-bold">
                             <i class="bi bi-trophy-fill text-warning me-2"></i>Peringkat Performa Karyawan Divisi
                         </h5>
-                        <span class="badge bg-secondary bg-opacity-10 text-body fw-bold border px-3 py-2 text-wrap text-start">
-                            Diurutkan dari Skor Komposisi Tertinggi
-                        </span>
+                        <div class="d-flex flex-wrap gap-3 text-muted align-items-center" style="font-size: 0.75rem;">
+                            <div class="d-flex align-items-center gap-1" data-bs-toggle="tooltip" title="Nilai mencapai atau melebihi target">
+                                <div style="width: 10px; height: 10px; border-radius: 50%;" class="bg-success"></div> Tercapai (≥100%)
+                            </div>
+                            <div class="d-flex align-items-center gap-1" data-bs-toggle="tooltip" title="Nilai di bawah target namun masih dapat diterima">
+                                <div style="width: 10px; height: 10px; border-radius: 50%;" class="bg-warning"></div> Kurang Optimal (75-99%)
+                            </div>
+                            <div class="d-flex align-items-center gap-1" data-bs-toggle="tooltip" title="Nilai jauh di bawah target">
+                                <div style="width: 10px; height: 10px; border-radius: 50%;" class="bg-danger"></div> Tidak Tercapai (<75%)
+                            </div>
+                        </div>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th class="text-center py-3" style="width: 90px;">Peringkat</th>
-                                        <th class="px-4">Nama Karyawan</th>
-                                        <th>Jabatan / Posisi</th>
+                                        <th class="text-center py-3" style="width: 90px;">Rank</th>
+                                        <th class="px-4">Employee Name</th>
+                                        <th>Role</th>
+                                        <th class="text-center">
+                                            Indikator Aktif
+                                            <i class="bi bi-info-circle text-primary ms-1 cursor-pointer" data-bs-toggle="tooltip" title="Setiap titik mewakili 1 metrik KPI. Sorot (hover) titik untuk melihat nama metrik dan nilainya."></i>
+                                        </th>
                                         <th class="text-center" style="width: 180px;">Skor Komposisi</th>
                                         <th class="text-center" style="width: 170px;">Tingkat Performa</th>
                                         <th class="text-center" style="width: 160px;">Aksi Detail</th>
@@ -661,34 +629,21 @@
                                     <tr>
                                         <td class="text-center">
                                             @if($index === 0)
-                                                <span class="badge badge-soft-amber px-3 py-2 fw-bold" style="font-size: 0.85rem;">
-                                                    🥇 #1 Top
-                                                </span>
+                                                <span class="badge badge-soft-amber px-3 py-2 fw-bold" style="font-size: 0.85rem;">🥇 #1 Top</span>
                                             @elseif($index === 1)
-                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-2 fw-bold" style="font-size: 0.85rem;">
-                                                    🥈 #2
-                                                </span>
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-2 fw-bold" style="font-size: 0.85rem;">🥈 #2</span>
                                             @elseif($index === 2)
-                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2 fw-bold" style="font-size: 0.85rem;">
-                                                    🥉 #3
-                                                </span>
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2 fw-bold" style="font-size: 0.85rem;">🥉 #3</span>
                                             @else
-                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2 fw-bold" style="font-size: 0.85rem;">
-                                                    #{{ $index + 1 }}
-                                                </span>
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2 fw-bold" style="font-size: 0.85rem;">#{{ $index + 1 }}</span>
                                             @endif
                                         </td>
                                         <td class="px-4">
                                             <div class="d-flex align-items-center gap-3">
                                                 @if(!empty($kpi['employee']->profile_photo))
-                                                    <img src="{{ asset('storage/' . $kpi['employee']->profile_photo) }}" 
-                                                         alt="{{ $kpi['employee']->fullname }}" 
-                                                         class="rounded-circle border shadow-sm" 
-                                                         style="width: 40px; height: 40px; object-fit: cover;">
+                                                    <img src="{{ asset('storage/' . $kpi['employee']->profile_photo) }}" class="rounded-circle border shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
                                                 @else
-                                                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary fw-bold d-flex align-items-center justify-content-center border" style="width: 40px; height: 40px; font-size: 0.95rem;">
-                                                        {{ strtoupper(substr($kpi['employee']->fullname, 0, 2)) }}
-                                                    </div>
+                                                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary fw-bold d-flex align-items-center justify-content-center border" style="width: 40px; height: 40px; font-size: 0.95rem;">{{ strtoupper(substr($kpi['employee']->fullname, 0, 2)) }}</div>
                                                 @endif
                                                 <div>
                                                     <h6 class="mb-0 fw-bold">{{ $kpi['employee']->fullname }}</h6>
@@ -697,58 +652,44 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <span class="badge bg-secondary bg-opacity-10 text-body border fw-semibold px-2 py-1">
-                                                {{ $kpi['employee']->role?->title ?? 'Staff' }}
-                                            </span>
+                                            <span class="badge bg-secondary bg-opacity-10 text-body border fw-semibold px-2 py-1">{{ $kpi['employee']->role?->title ?? 'Staff' }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center gap-1">
+                                                @forelse($kpi['details'] ?? [] as $key => $detail)
+                                                    <div style="width: 10px; height: 10px; border-radius: 50%;" class="bg-{{ $detail['rate'] >= 75 ? 'success' : 'warning' }}" title="{{ $detail['label'] }}"></div>
+                                                @empty
+                                                    <span class="text-muted small">N/A</span>
+                                                @endforelse
+                                            </div>
+                                            <small class="text-muted" style="font-size: 0.7rem;">{{ count($kpi['details'] ?? []) }} Indikator</small>
                                         </td>
                                         <td class="align-middle text-center">
                                             <div class="d-flex align-items-center justify-content-center gap-2">
                                                 <div class="progress flex-grow-1" style="height: 8px; border-radius: 4px; max-width: 90px; background-color: #e2e8f0;">
-                                                    <div class="progress-bar {{ 
-                                                        $kpi['composite_score'] >= 90 ? 'bg-success' : 
-                                                        ($kpi['composite_score'] >= 75 ? 'bg-info' : 
-                                                        ($kpi['composite_score'] >= 60 ? 'bg-warning' : 'bg-danger'))
-                                                    }}" style="width: {{ min($kpi['composite_score'], 100) }}%; border-radius: 4px;"></div>
+                                                    <div class="progress-bar {{ $kpi['composite_score'] >= 90 ? 'bg-success' : ($kpi['composite_score'] >= 75 ? 'bg-info' : ($kpi['composite_score'] >= 60 ? 'bg-warning' : 'bg-danger')) }}" style="width: {{ min($kpi['composite_score'], 100) }}%; border-radius: 4px;"></div>
                                                 </div>
-                                                <span class="fw-bold {{ 
-                                                    $kpi['composite_score'] >= 90 ? 'text-success' : 
-                                                    ($kpi['composite_score'] >= 75 ? 'text-info' : 
-                                                    ($kpi['composite_score'] >= 60 ? 'text-warning' : 'text-danger'))
-                                                }}">
-                                                    {{ round($kpi['composite_score'], 2) }}
-                                                </span>
+                                                <span class="fw-bold text-dark">{{ round($kpi['composite_score'], 2) }}</span>
                                             </div>
                                         </td>
                                         <td class="text-center">
                                             @switch($kpi['performance_level'])
-                                                @case('excellent')
-                                                    <span class="badge badge-soft-emerald px-3 py-2 fw-bold">Excellent</span>
-                                                    @break
-                                                @case('good')
-                                                    <span class="badge badge-soft-sky px-3 py-2 fw-bold">Good</span>
-                                                    @break
-                                                @case('satisfactory')
-                                                    <span class="badge badge-soft-amber px-3 py-2 fw-bold">Satisfactory</span>
-                                                    @break
-                                                @case('needs_improvement')
-                                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2 fw-bold">Needs Improvement</span>
-                                                    @break
-                                                @default
-                                                    <span class="badge badge-soft-rose px-3 py-2 fw-bold">Unsatisfactory</span>
+                                                @case('excellent') <span class="badge badge-soft-emerald px-3 py-2 fw-bold">Excellent</span> @break
+                                                @case('good') <span class="badge badge-soft-sky px-3 py-2 fw-bold">Good</span> @break
+                                                @case('satisfactory') <span class="badge badge-soft-amber px-3 py-2 fw-bold">Satisfactory</span> @break
+                                                @case('needs_improvement') <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2 fw-bold">Needs Improvement</span> @break
+                                                @default <span class="badge badge-soft-rose px-3 py-2 fw-bold">Unsatisfactory</span>
                                             @endswitch
                                         </td>
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-1">
-                                                <a href="{{ route('kpi.show', $kpi['employee']->id) }}?period={{ $period }}" 
-                                                   class="btn btn-xs btn-outline-primary shadow-sm"
-                                                   title="View Employee Detail">
-                                                    <i class="bi bi-eye-fill me-1"></i> Details
-                                                </a>
-                                                <a href="{{ route('kpi.trend', $kpi['employee']->id) }}" 
-                                                   class="btn btn-xs btn-outline-success shadow-sm"
-                                                   title="View Employee Trend">
-                                                    <i class="bi bi-graph-up me-1"></i> Trend
-                                                </a>
+                                                <button type="button" class="btn btn-xs btn-primary shadow-sm btn-detail-kpi px-2" 
+                                                    data-bs-toggle="offcanvas" 
+                                                    data-bs-target="#kpiOffcanvas" 
+                                                    data-kpi="{{ json_encode(array_merge($kpi, ['fullname' => $kpi['employee']->fullname, 'position' => $kpi['employee']->role?->title ?? 'Staff', 'department' => $kpi['employee']->department->name ?? 'No Dept', 'photo' => $kpi['employee']->profile_photo])) }}">
+                                                    <i class="bi bi-grid-fill"></i> Detail
+                                                </button>
+                                                <a href="{{ route('kpi.trend', $kpi['employee']->id) }}" class="btn btn-xs btn-outline-success shadow-sm" title="View Trend"><i class="bi bi-graph-up"></i></a>
                                             </div>
                                         </td>
                                     </tr>
@@ -779,6 +720,36 @@
             </div>
         </div>
         @endif
+    </div>
+</div>
+
+<!-- KPI Detail Offcanvas -->
+<div class="offcanvas offcanvas-end border-0 shadow-lg" tabindex="-1" id="kpiOffcanvas" aria-labelledby="kpiOffcanvasLabel" style="width: 480px; background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);">
+    <div class="offcanvas-header border-bottom-0 bg-transparent pb-0 mt-3 px-4">
+        <div class="d-flex align-items-center gap-3">
+            <div id="oc-photo" class="rounded-circle bg-white text-primary fw-bold d-flex align-items-center justify-content-center shadow-sm" style="width: 56px; height: 56px; font-size: 1.4rem; border: 3px solid #fff;"></div>
+            <div>
+                <h5 class="offcanvas-title fw-bolder mb-0 text-dark" id="kpiOffcanvasLabel" style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;">Employee Name</h5>
+                <small class="text-secondary fw-medium" id="oc-role" style="letter-spacing: 0.5px;">Role / Dept</small>
+            </div>
+        </div>
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-4 pt-3">
+        <!-- Main Score -->
+        <div class="card border-0 mb-4 rounded-4" style="background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05); border: 1px solid rgba(255, 255, 255, 0.4);">
+            <div class="card-body text-center p-4">
+                <h6 class="text-uppercase fw-bold mb-2" style="letter-spacing: 1.5px; color: #64748b; font-size: 0.75rem;">Composite Score</h6>
+                <div class="display-3 fw-bold" id="oc-score" style="color: #0f172a; text-shadow: 0 2px 10px rgba(0,0,0,0.05);">0</div>
+            </div>
+        </div>
+        
+        <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-dark" style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;">
+            <i class="bi bi-layers text-primary p-2 bg-primary bg-opacity-10 rounded-3"></i> Rincian Matriks Performa
+        </h6>
+        <div id="oc-details-container" class="d-flex flex-column gap-3">
+            <!-- JS populated -->
+        </div>
     </div>
 </div>
 
@@ -933,4 +904,80 @@
     });
 </script>
 @endif
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const offcanvasEl = document.getElementById('kpiOffcanvas');
+        if (offcanvasEl) {
+            offcanvasEl.addEventListener('show.bs.offcanvas', function (event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+                
+                try {
+                    const data = JSON.parse(button.getAttribute('data-kpi'));
+                    
+                    // Populate Header
+                    document.getElementById('kpiOffcanvasLabel').innerText = data.fullname || '-';
+                    document.getElementById('oc-role').innerText = (data.position || 'Staff') + ' | ' + (data.department || '-');
+                    document.getElementById('oc-score').innerText = parseFloat(data.composite_score || 0).toFixed(2);
+                    
+                    // Set text color based on score (Soft colors)
+                    const scoreEl = document.getElementById('oc-score');
+                    if(data.composite_score >= 80) scoreEl.style.color = "#059669"; // Emerald
+                    else if(data.composite_score >= 60) scoreEl.style.color = "#d97706"; // Amber
+                    else scoreEl.style.color = "#e11d48"; // Rose
+
+                    // Populate Photo
+                    const photoEl = document.getElementById('oc-photo');
+                    if (data.photo) {
+                        photoEl.innerHTML = `<img src="/storage/${data.photo}" alt="${data.fullname}" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;" />`;
+                    } else {
+                        photoEl.innerHTML = data.fullname ? data.fullname.substring(0, 1).toUpperCase() : '?';
+                    }
+
+                    // Populate Details
+                    const container = document.getElementById('oc-details-container');
+                    container.innerHTML = '';
+
+                    if (data.details && typeof data.details === 'object' && Object.keys(data.details).length > 0) {
+                        Object.values(data.details).forEach(detail => {
+                            const rate = parseFloat(detail.rate || 0);
+                            const weight = parseFloat(detail.actual_weight || 0);
+                            const point = (rate * (weight / 100)).toFixed(2);
+                            
+                            let colorTheme = { bg: 'danger', text: 'danger', hex: '#fb7185' }; // Soft Rose
+                            if (rate >= 100) colorTheme = { bg: 'success', text: 'success', hex: '#34d399' }; // Soft Emerald
+                            else if (rate >= 75) colorTheme = { bg: 'warning', text: 'warning', hex: '#fbbf24' }; // Soft Amber
+
+                            const html = `
+                            <div class="card border-0 rounded-4" style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03); border: 1px solid rgba(255, 255, 255, 0.5); overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.03)';">
+                                <div class="position-absolute top-0 start-0 h-100" style="width: 4px; background-color: ${colorTheme.hex};"></div>
+                                <div class="card-body p-3 ps-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="fw-bold text-dark fs-6" style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;">${detail.label || 'Indikator'}</div>
+                                        <div class="badge rounded-pill bg-${colorTheme.bg} bg-opacity-10 text-${colorTheme.text} px-3 py-2 fw-bold" style="letter-spacing: 0.5px;">${rate.toFixed(1)}%</div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center rounded-3 p-2 mt-3" style="background: rgba(241, 245, 249, 0.7);">
+                                        <div class="text-secondary fw-medium" style="font-size: 0.75rem;">
+                                            <i class="bi bi-calculator me-1 opacity-75"></i> ${rate.toFixed(1)} x ${weight}% Bobot
+                                        </div>
+                                        <div class="fw-bold" style="font-size: 0.85rem; color: #334155;">
+                                            +${point} Poin
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                            container.insertAdjacentHTML('beforeend', html);
+                        });
+                    } else {
+                        container.innerHTML = '<div class="alert alert-secondary border-0 rounded-4" style="background: rgba(255,255,255,0.7);"><i class="bi bi-info-circle me-2"></i>Belum ada data metrik tersedia.</div>';
+                    }
+                } catch (e) {
+                    console.error("Failed to parse KPI data", e);
+                }
+            });
+        }
+    });
+</script>
 @endsection
