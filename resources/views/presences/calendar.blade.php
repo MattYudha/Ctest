@@ -88,7 +88,7 @@
             @if ($selectedEmployeeId)
                 <div class="row g-3 mb-4">
                     <div class="col-6 col-md-4 col-xl-2">
-                        <div class="card shadow-sm border-0 border-top border-4 border-primary rounded-3 h-100">
+                        <div class="card shadow-sm border-start-0 border-end-0 border-bottom-0 border-top border-4 border-primary rounded-3 h-100">
                             <div class="card-body p-3 text-center d-flex flex-column justify-content-center">
                                 <h6 class="mb-1 fw-bold text-muted" style="font-size: 0.85rem">Working Days</h6>
                                 <h3 class="mb-0 fw-bold text-body">{{ $summary['working_days'] }}</h3>
@@ -96,7 +96,7 @@
                         </div>
                     </div>
                     <div class="col-6 col-md-4 col-xl-2">
-                        <div class="card shadow-sm border-0 border-top border-4 border-success rounded-3 h-100">
+                        <div class="card shadow-sm border-start-0 border-end-0 border-bottom-0 border-top border-4 border-success rounded-3 h-100">
                             <div class="card-body p-3 text-center d-flex flex-column justify-content-center">
                                 <h6 class="mb-1 fw-bold text-muted" style="font-size: 0.85rem">Present</h6>
                                 <h3 class="mb-0 fw-bold text-success">{{ $summary['present'] }}</h3>
@@ -104,7 +104,7 @@
                         </div>
                     </div>
                     <div class="col-6 col-md-4 col-xl-2">
-                        <div class="card shadow-sm border-0 border-top border-4 border-warning rounded-3 h-100">
+                        <div class="card shadow-sm border-start-0 border-end-0 border-bottom-0 border-top border-4 border-warning rounded-3 h-100">
                             <div class="card-body p-3 text-center d-flex flex-column justify-content-center">
                                 <h6 class="mb-1 fw-bold text-muted" style="font-size: 0.85rem">Late</h6>
                                 <h3 class="mb-0 fw-bold text-warning">{{ $summary['late'] }}</h3>
@@ -112,7 +112,7 @@
                         </div>
                     </div>
                     <div class="col-6 col-md-4 col-xl-2">
-                        <div class="card shadow-sm border-0 border-top border-4 border-info rounded-3 h-100">
+                        <div class="card shadow-sm border-start-0 border-end-0 border-bottom-0 border-top border-4 border-info rounded-3 h-100">
                             <div class="card-body p-3 text-center d-flex flex-column justify-content-center">
                                 <h6 class="mb-1 fw-bold text-muted" style="font-size: 0.85rem">Leave</h6>
                                 <h3 class="mb-0 fw-bold text-info">{{ $summary['leave'] }}</h3>
@@ -120,7 +120,7 @@
                         </div>
                     </div>
                     <div class="col-6 col-md-4 col-xl-2">
-                        <div class="card shadow-sm border-0 border-top border-4 border-danger rounded-3 h-100">
+                        <div class="card shadow-sm border-start-0 border-end-0 border-bottom-0 border-top border-4 border-danger rounded-3 h-100">
                             <div class="card-body p-3 text-center d-flex flex-column justify-content-center">
                                 <h6 class="mb-1 fw-bold text-muted" style="font-size: 0.85rem">Absent (Alpha)</h6>
                                 <h3 class="mb-0 fw-bold text-danger">{{ $summary['absent'] }}</h3>
@@ -128,7 +128,7 @@
                         </div>
                     </div>
                     <div class="col-6 col-md-4 col-xl-2">
-                        <div class="card shadow-sm border-0 border-top border-4 border-secondary rounded-3 h-100">
+                        <div class="card shadow-sm border-start-0 border-end-0 border-bottom-0 border-top border-4 border-secondary rounded-3 h-100">
                             <div class="card-body p-3 text-center d-flex flex-column justify-content-center">
                                 <h6 class="mb-1 fw-bold text-muted" style="font-size: 0.85rem">WFO/WFH/WFA</h6>
                                 <h5 class="mb-0 fw-bold text-body mt-1">

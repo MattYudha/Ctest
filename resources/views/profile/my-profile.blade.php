@@ -464,9 +464,6 @@
                                             </tr>
                                         @endforelse
                                     </tbody>
-                                </table>
-                            </div>
-                        </div>
                     </div>
                     {{-- /tab-content --}}
                 </div>

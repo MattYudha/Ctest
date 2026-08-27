@@ -18,6 +18,12 @@ class AppServiceProvider extends ServiceProvider
         // Register QrCode facade alias
         $loader = \Illuminate\Foundation\AliasLoader::getInstance();
         $loader->alias('QrCode', \SimpleSoftwareIO\QrCode\Facades\QrCode::class);
+
+        // Register Repositories
+        $this->app->bind(
+            \App\Repositories\Contracts\FaceRepositoryInterface::class,
+            \App\Repositories\FaceRepository::class
+        );
     }
 
     /**

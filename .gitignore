@@ -57,4 +57,13 @@ routes_kb*.json
 
 # Excel & binary docs
 *.xlsx
-*.pdf
+*.
+
+FACE_RECOGNITION_README.md
+
+# Python
+python-face-service/venv/
+python-face-service/__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/

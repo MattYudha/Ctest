@@ -268,7 +268,31 @@ class PresencesController extends Controller
             $ssid = $request->ssid ?? '';
 
             $employeeId = session('employee_id');
-            $employee = $employeeId ? Employee::with('officeLocation')->find($employeeId) : null;
+            $employee = $employeeId ? \App\Models\Employee::with('officeLocation', 'faceProfile')->find($employeeId) : null;
+            
+            // Face Verification Logic
+            if ($employee && !$employee->faceProfile) {
+                return redirect()->back()->with('error', 'You have not registered your face. Please go to Profile -> Face Recognition to enroll.');
+            }
+
+            if (!$request->filled('photo_data')) {
+                return redirect()->back()->with('error', 'Face photo is required for attendance.');
+            }
+
+            $base64 = preg_replace('#^data:image/\w+;base64,#i', '', $request->photo_data);
+            $imgData = base64_decode($base64);
+            $tmpPath = sys_get_temp_dir() . '/' . uniqid('face_') . '.jpg';
+            file_put_contents($tmpPath, $imgData);
+
+            $faceService = app(\App\Services\FaceRecognition\FaceRecognitionService::class);
+            $faceResult = $faceService->checkAttendance($user->id, $tmpPath);
+
+            @unlink($tmpPath);
+
+            if (!$faceResult['success']) {
+                $this->logSuspicious($user->id, 'wrong_face', 'Face mismatch: ' . ($faceResult['message'] ?? 'Unknown Error'));
+                return redirect()->back()->with('error', 'Face verification failed: ' . ($faceResult['message'] ?? 'Mismatch'));
+            }
             $officeLocationConfig = $this->resolveOfficeLocationForEmployee($employee);
             $selectedWfoOfficeLocationId = null;
 

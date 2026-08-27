@@ -103,7 +103,23 @@
                     </form>
 
                 @else
-                    <div id="step-choose-type">
+                    @if(!Auth::user()->faceProfile)
+                        <div class="alert alert-warning border-0 shadow-sm rounded-3 mb-4 p-4">
+                            <div class="d-flex align-items-center">
+                                <!-- <div class="fs-1 text-warning me-4">
+                                    <i class="bi bi-person-exclamation"></i>
+                                </div> -->
+                                <div>
+                                    <h5 class="alert-heading fw-bold mb-1">Face Data Required</h5>
+                                    <p class="mb-2">You haven't registered your face yet. Please enroll your face in the profile settings before you can submit attendance.</p>
+                                    <a href="{{ route('my-profile.edit') }}" class="btn btn-warning fw-bold rounded-pill px-4 shadow-sm">
+                                        <i class="bi bi-camera-fill me-1"></i> Register Face Now
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div id="step-choose-type">
                         <h5 class="mb-3 mb-md-4 text-center text-md-start">Select Today's Work Type</h5>
                         <div class="row g-3 g-md-4">
                             {{-- WFO Card --}}
@@ -241,7 +257,7 @@
                             </div>
 
                             <div
-                                class="alert rounded-3 border-0 border-start border-4 border-primary bg-primary bg-opacity-10 text-body mb-3 shadow-sm p-3"
+                                class="alert rounded-3 border-end-0 border-top-0 border-bottom-0 border-start border-4 border-primary bg-primary bg-opacity-10 text-body mb-3 shadow-sm p-3"
                             >
                                 <strong class="text-primary d-block mb-1 small"
                                     ><i class="bi bi-clipboard-check"></i> WFO Validation:</strong
@@ -414,17 +430,10 @@
                                                 max-height: 280px;
                                                 object-fit: cover;
                                                 transform: scaleX(-1);
+                                                display: block;
                                             "
                                         ></video>
-                                        <div
-                                            class="position-absolute top-50 start-50 translate-middle pe-none"
-                                            style="
-                                                width: 140px;
-                                                height: 180px;
-                                                border: 2px dashed rgba(255, 255, 255, 0.6);
-                                                border-radius: 50%;
-                                            "
-                                        ></div>
+                                        <canvas id="overlay-wfo" class="position-absolute top-0 start-0 pe-none" style="width: 100%; max-height: 280px; object-fit: cover; transform: scaleX(-1); display: block;"></canvas>
                                     </div>
 
                                     <div id="preview-container-wfo" class="text-center mb-3" style="display: none">
@@ -504,7 +513,7 @@
                             <input type="hidden" name="photo_data" id="photo_data-wfh" />
 
                             <div
-                                class="alert rounded-3 border-0 border-start border-4 border-success bg-success bg-opacity-10 text-body mb-3 shadow-sm p-3"
+                                class="alert rounded-3 border-end-0 border-top-0 border-bottom-0 border-start border-4 border-success bg-success bg-opacity-10 text-body mb-3 shadow-sm p-3"
                             >
                                 <strong class="text-success d-block mb-1 small"
                                     ><i class="bi bi-clipboard-check"></i> WFH Validation:</strong
@@ -523,7 +532,7 @@
                                             >⏳ Loading GPS...</span
                                         >
                                     </div>
-                                    <div class="mb-2 small border-bottom border-secondary border-opacity-10 pb-2 mb-2">
+                                    <div class="mb-2 small border-bottom border-secondary border-opacity-10 pb-2">
                                         <div class="d-flex flex-column mb-1">
                                             <span class="text-muted">Latitude:</span>
                                             <span id="lat-display-wfh" class="fw-medium text-break">-</span>
@@ -572,17 +581,10 @@
                                                 max-height: 280px;
                                                 object-fit: cover;
                                                 transform: scaleX(-1);
+                                                display: block;
                                             "
                                         ></video>
-                                        <div
-                                            class="position-absolute top-50 start-50 translate-middle pe-none"
-                                            style="
-                                                width: 140px;
-                                                height: 180px;
-                                                border: 2px dashed rgba(255, 255, 255, 0.6);
-                                                border-radius: 50%;
-                                            "
-                                        ></div>
+                                        <canvas id="overlay-wfh" class="position-absolute top-0 start-0 pe-none" style="width: 100%; max-height: 280px; object-fit: cover; transform: scaleX(-1); display: block;"></canvas>
                                     </div>
 
                                     <div id="preview-container-wfh" class="text-center mb-3" style="display: none">
@@ -662,7 +664,7 @@
                             <input type="hidden" name="photo_data" id="photo_data-wfa" />
 
                             <div
-                                class="alert rounded-3 border-0 border-start border-4 border-info bg-info bg-opacity-10 text-body mb-3 shadow-sm p-3"
+                                class="alert rounded-3 border-end-0 border-top-0 border-bottom-0 border-start border-4 border-info bg-info bg-opacity-10 text-body mb-3 shadow-sm p-3"
                             >
                                 <strong class="text-info d-block mb-1 small"
                                     ><i class="bi bi-clipboard-check"></i> WFA Validation:</strong
@@ -681,7 +683,7 @@
                                             >⏳ Loading GPS...</span
                                         >
                                     </div>
-                                    <div class="mb-2 small border-bottom border-secondary border-opacity-10 pb-2 mb-2">
+                                    <div class="mb-2 small border-bottom border-secondary border-opacity-10 pb-2">
                                         <div class="d-flex flex-column mb-1">
                                             <span class="text-muted">Latitude:</span>
                                             <span id="lat-display-wfa" class="fw-medium text-break">-</span>
@@ -730,17 +732,10 @@
                                                 max-height: 280px;
                                                 object-fit: cover;
                                                 transform: scaleX(-1);
+                                                display: block;
                                             "
                                         ></video>
-                                        <div
-                                            class="position-absolute top-50 start-50 translate-middle pe-none"
-                                            style="
-                                                width: 140px;
-                                                height: 180px;
-                                                border: 2px dashed rgba(255, 255, 255, 0.6);
-                                                border-radius: 50%;
-                                            "
-                                        ></div>
+                                        <canvas id="overlay-wfa" class="position-absolute top-0 start-0 pe-none" style="width: 100%; max-height: 280px; object-fit: cover; transform: scaleX(-1); display: block;"></canvas>
                                     </div>
 
                                     <div id="preview-container-wfa" class="text-center mb-3" style="display: none">
@@ -1188,9 +1183,11 @@
                     '<span class="badge bg-primary bg-opacity-10 text-primary rounded-3 px-3 py-2"><i class="bi bi-cpu"></i> Camera is active. Loading AI...</span>';
                 const MODEL_URL = '{{ asset("vendor/face-api/weights") }}';
                 await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
 
                 statusEl.innerHTML =
-                    '<span class="badge bg-info bg-opacity-10 text-info rounded-3 px-3 py-2"><i class="bi bi-person-bounding-box"></i> Waiting for face movement...</span>';
+                    '<span class="badge bg-info bg-opacity-10 text-info rounded-3 px-3 py-2"><i class="bi bi-person-bounding-box"></i> Waiting for face...</span>';
                 startFaceDetectionLoop(mode, videoEl, statusEl, videoContainer, previewContainer, previewImg);
             } catch (err) {
                 let errorMsg = err.message;
@@ -1219,44 +1216,228 @@
             }
         }
 
+        function calculateEAR(eye) {
+            const A = Math.hypot(eye[1].x - eye[5].x, eye[1].y - eye[5].y);
+            const B = Math.hypot(eye[2].x - eye[4].x, eye[2].y - eye[4].y);
+            const C = Math.hypot(eye[0].x - eye[3].x, eye[0].y - eye[3].y);
+            return (A + B) / (2.0 * C);
+        }
+
+        function drawHUDBox(ctx, x, y, width, height, color) {
+            const len = 20;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            ctx.moveTo(x, y + len); ctx.lineTo(x, y); ctx.lineTo(x + len, y);
+            ctx.moveTo(x + width - len, y); ctx.lineTo(x + width, y); ctx.lineTo(x + width, y + len);
+            ctx.moveTo(x + width, y + height - len); ctx.lineTo(x + width, y + height); ctx.lineTo(x + width - len, y + height);
+            ctx.moveTo(x + len, y + height); ctx.lineTo(x, y + height); ctx.lineTo(x, y + height - len);
+            
+            ctx.stroke();
+            
+            ctx.fillStyle = color === '#00ff88' ? 'rgba(0, 255, 136, 0.1)' : 'rgba(0, 212, 255, 0.1)';
+            ctx.fillRect(x, y, width, height);
+        }
+
+        function drawFaceBox(ctx, box) {
+            let { x, y, width, height } = box;
+            const expandY = height * 0.25;
+            y -= expandY;
+            height += expandY;
+            const expandX = width * 0.1;
+            x -= expandX;
+            width += (expandX * 2);
+            drawHUDBox(ctx, x, y, width, height, '#00ff88');
+        }
+
+        function drawEyesBox(ctx, landmarks) {
+            const leftEye = landmarks.getLeftEye();
+            const rightEye = landmarks.getRightEye();
+            const pts = [...leftEye, ...rightEye];
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            pts.forEach(p => {
+                if (p.x < minX) minX = p.x;
+                if (p.y < minY) minY = p.y;
+                if (p.x > maxX) maxX = p.x;
+                if (p.y > maxY) maxY = p.y;
+            });
+            const padX = 30, padY = 25;
+            drawHUDBox(ctx, minX - padX, minY - padY, (maxX - minX) + padX * 2, (maxY - minY) + padY * 2, '#00d4ff');
+        }
+
         function startFaceDetectionLoop(mode, videoEl, statusEl, videoContainer, previewContainer, previewImg) {
-            let detectionCount = 0;
+            let stage = 0; // 0: wait for blink, 1: verify & countdown
+            let isVerifying = false;
+            let blinkDetected = false;
+            let blinkCountFrames = 0;
+            const overlay = document.getElementById('overlay-' + mode);
+            let ctx = null;
+            
+            if (overlay) {
+                overlay.width = videoEl.videoWidth || 320;
+                overlay.height = videoEl.videoHeight || 240;
+                ctx = overlay.getContext('2d');
+            }
+
+            statusEl.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-person-bounding-box me-1"></i> Detecting Face...</span>';
+
+            let isDetecting = false;
             const interval = setInterval(async () => {
-                const detections = await faceapi.detectAllFaces(videoEl, new faceapi.TinyFaceDetectorOptions());
+                if (isDetecting) return;
+                isDetecting = true;
 
-                if (detections.length > 0) {
-                    detectionCount++;
-                    if (detectionCount >= 10) {
-                        clearInterval(interval);
-                        statusEl.innerHTML =
-                            '<span class="badge bg-success bg-opacity-10 text-success rounded-3 px-3 py-2"><i class="bi bi-check-circle"></i> Face Verified!</span>';
+                try {
+                    if (videoEl.videoWidth > 0 && overlay && overlay.width !== videoEl.videoWidth) {
+                        overlay.width = videoEl.videoWidth;
+                        overlay.height = videoEl.videoHeight;
+                    }
 
-                        const canvas = document.createElement('canvas');
-                        const targetWidth = 480;
-                        const scale = targetWidth / videoEl.videoWidth;
-                        const targetHeight = videoEl.videoHeight * scale;
+                    const detection = await faceapi.detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions())
+                        .withFaceLandmarks();
 
-                        canvas.width = targetWidth;
-                        canvas.height = targetHeight;
-                        const ctx = canvas.getContext('2d');
+                    if (ctx && overlay) {
+                        ctx.clearRect(0, 0, overlay.width, overlay.height);
+                    }
 
-                        ctx.translate(targetWidth, 0);
-                        ctx.scale(-1, 1);
-                        ctx.drawImage(videoEl, 0, 0, targetWidth, targetHeight);
+                // 1. Score > 0.50 ensures it's a face (lowered for bad cameras).
+                // 2. Box Width > 50 ensures the face isn't too far away.
+                if (detection) {
+                    if (ctx) {
+                        if (stage === 0) {
+                            drawFaceBox(ctx, detection.detection.box);
+                        } else if (stage === 1) {
+                            drawEyesBox(ctx, detection.landmarks);
+                        }
+                        // stage 2 does not draw bounding box
+                    }
 
-                        const photoData = canvas.toDataURL('image/jpeg', 0.7);
-                        const photoInput = document.getElementById('photo_data-' + mode);
-                        if (photoInput) photoInput.value = photoData;
+                    if (detection.detection.score < 0.50 || detection.detection.box.width < 50) {
+                        if (stage === 0) {
+                            statusEl.innerHTML = '<span class="badge bg-warning bg-opacity-10 text-warning rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-arrows-fullscreen"></i> Please Move Closer to the Camera</span>';
+                        }
+                        return;
+                    }
 
-                        previewImg.src = photoData;
-                        videoContainer.style.display = 'none';
-                        previewContainer.style.display = 'block';
+                    if (stage === 0) {
+                        // STAGE 0: VERIFY IDENTITY FIRST
+                        if (!isVerifying) {
+                            isVerifying = true;
+                            statusEl.innerHTML = '<span class="badge bg-primary bg-opacity-10 text-primary rounded-3 px-3 py-2 fs-6 shadow-sm"><i class="bi bi-arrow-repeat"></i> Verifying Identity...</span>';
+                            
+                            const canvas = document.createElement('canvas');
+                            canvas.width = videoEl.videoWidth;
+                            canvas.height = videoEl.videoHeight;
+                            const tctx = canvas.getContext('2d');
+                            tctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+                            const photoData = canvas.toDataURL('image/jpeg', 0.8);
+                            
+                            try {
+                                const response = await fetch('/api/face/verify', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                    },
+                                    body: JSON.stringify({ image: photoData })
+                                });
+                                const result = await response.json();
+                                
+                                if (result.success) {
+                                    stage = 1; // Verified! Move to blink check
+                                    isVerifying = false;
+                                } else {
+                                    statusEl.innerHTML = '<span class="badge bg-danger bg-opacity-10 text-danger rounded-3 px-3 py-2 fs-6 shadow-sm"><i class="bi bi-x-circle me-1"></i> Face Not Recognized!</span>';
+                                    setTimeout(() => {
+                                        isVerifying = false;
+                                        if (stage === 0) {
+                                            statusEl.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary rounded-3 px-3 py-2 fs-6 shadow-sm"><i class="bi bi-person-bounding-box me-1"></i> Detecting Face...</span>';
+                                        }
+                                    }, 2000);
+                                }
+                            } catch (e) {
+                                isVerifying = false;
+                            }
+                        }
+                    } else if (stage === 1) {
+                        // STAGE 1: WAIT FOR BLINK TO PROVE LIVENESS
+                        const landmarks = detection.landmarks;
+                        const leftEye = landmarks.getLeftEye();
+                        const rightEye = landmarks.getRightEye();
+                        const ear = (calculateEAR(leftEye) + calculateEAR(rightEye)) / 2.0;
 
-                        modeState[mode].face = true;
-                        checkReady(mode);
+                        // BALANCED BLINK THRESHOLD (0.27) - Not too tight, not too loose
+                        if (ear < 0.27) {
+                            blinkCountFrames++;
+                        } else {
+                            if (blinkCountFrames >= 1) {
+                                stage = 2; // Blink detected, proceed to countdown
+                            }
+                            blinkCountFrames = 0;
+                        }
+
+                        if (stage === 1) {
+                            statusEl.innerHTML = '<span class="badge bg-info bg-opacity-10 text-info rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap lh-sm"><i class="bi bi-eye"></i> Face Matched!<br>Please blink to confirm...</span>';
+                        }
+                    } else if (stage === 2) {
+                        // STAGE 2: COUNTDOWN AND CAPTURE
+                        if (!isVerifying) {
+                            isVerifying = true;
+                            
+                            // STOP heavy face detection loop immediately to free up CPU for smooth countdown
+                            clearInterval(interval);
+                            
+                            let countdown = 3;
+                            statusEl.innerHTML = `<span class="badge bg-success bg-opacity-10 text-success rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-${countdown}-circle"></i> Liveness OK! Get Ready...</span>`;
+                            
+                            const countdownInterval = setInterval(() => {
+                                countdown--;
+                                if (countdown > 0) {
+                                    statusEl.innerHTML = `<span class="badge bg-success bg-opacity-10 text-success rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-${countdown}-circle"></i> Liveness OK! Get Ready...</span>`;
+                                } else {
+                                    clearInterval(countdownInterval);
+                                    
+                                    statusEl.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-check-circle"></i> Identity Verified! Wait...</span>';
+
+                                    const canvas = document.createElement('canvas');
+                                    const targetWidth = 480;
+                                    const scale = targetWidth / videoEl.videoWidth;
+                                    const targetHeight = videoEl.videoHeight * scale;
+
+                                    canvas.width = targetWidth;
+                                    canvas.height = targetHeight;
+                                    const tctx = canvas.getContext('2d');
+
+                                    tctx.translate(targetWidth, 0);
+                                    tctx.scale(-1, 1);
+                                    tctx.drawImage(videoEl, 0, 0, targetWidth, targetHeight);
+
+                                    const photoData = canvas.toDataURL('image/jpeg', 0.8);
+                                    const photoInput = document.getElementById('photo_data-' + mode);
+                                    if (photoInput) photoInput.value = photoData;
+
+                                    previewImg.src = photoData;
+                                    videoContainer.style.display = 'none';
+                                    previewContainer.style.display = 'block';
+
+                                    modeState[mode].face = true;
+                                    checkReady(mode);
+                                }
+                            }, 1000);
+                        }
+                    }
+                } else {
+                    // Face lost
+                    if (stage === 0) {
+                        statusEl.innerHTML = '<span class="badge bg-danger bg-opacity-10 text-danger rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-exclamation-triangle me-1"></i> Face Not Detected</span>';
                     }
                 }
-            }, 500);
+                } catch (err) {
+                    console.error('Face detection error:', err);
+                } finally {
+                    isDetecting = false;
+                }
+            }, 80); // Reduced interval to 80ms to catch faster blinks 
 
             if (mode === 'wfo') faceDetectionInterval = interval;
             else faceDetectionIntervals[mode] = interval;
@@ -1364,4 +1545,5 @@
             renderWfoOfficeDetails();
         });
     </script>
+                    @endif
 @endsection
