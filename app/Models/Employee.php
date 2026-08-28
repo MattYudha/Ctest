@@ -104,6 +104,11 @@ class Employee extends Model
         return $this->hasOne(User::class, 'employee_id', 'id');
     }
 
+    public function faceProfile()
+    {
+        return $this->hasOneThrough(FaceProfile::class, User::class, 'employee_id', 'user_id', 'id', 'id');
+    }
+
     /**
      * Relationship: an employee can have many mutations.
      */
