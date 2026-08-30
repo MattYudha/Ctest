@@ -1187,8 +1187,8 @@
                 await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
 
                 // Load MediaPipe Local
-                if (typeof faceLandmarker === 'undefined' || !faceLandmarker) {
-                    const { FaceLandmarker, FilesetResolver } = await import('{{ asset("vendor/mediapipe/vision_bundle.mjs") }}');
+                if (typeof faceLandmarker === 'undefined' || !window.faceLandmarker) {
+                    const { FaceLandmarker, FilesetResolver } = await import('{{ asset("vendor/mediapipe/vision_bundle.js") }}');
                     const filesetResolver = await FilesetResolver.forVisionTasks('{{ asset("vendor/mediapipe/wasm") }}');
                     window.faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
                         baseOptions: {
