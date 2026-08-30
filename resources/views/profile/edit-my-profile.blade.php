@@ -185,11 +185,53 @@
                                 @else
                                     <p class="text-muted small">Please ensure your face is clearly visible. We need 5 snapshots for better accuracy.</p>
                                     
-                                    <div class="bg-light rounded-3 d-flex align-items-center justify-content-center mb-3 mx-auto shadow-sm" style="width: 100%; max-width: 300px; aspect-ratio: 1/1; overflow: hidden; position: relative;">
+                                    <style>
+                                        @keyframes snapshot-fly {
+                                            0% { transform: scale(1) translateX(0) translateY(0); opacity: 1; }
+                                            50% { transform: scale(0.6) translateX(0) translateY(-20px); opacity: 0.9; }
+                                            100% { transform: scale(0.2) translateX(-100px) translateY(100px); opacity: 0; }
+                                        }
+                                        .anim-snapshot {
+                                            position: absolute;
+                                            top: 0;
+                                            left: 0;
+                                            width: 100%;
+                                            height: 100%;
+                                            object-fit: cover;
+                                            z-index: 20;
+                                            border: 4px solid white;
+                                            border-radius: 8px;
+                                            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                                            animation: snapshot-fly 0.7s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+                                        }
+                                        @keyframes flash {
+                                            0% { opacity: 0.8; }
+                                            100% { opacity: 0; }
+                                        }
+                                        .anim-flash {
+                                            animation: flash 0.3s ease-out forwards;
+                                        }
+                                        .gallery-thumb {
+                                            width: 40px;
+                                            height: 40px;
+                                            object-fit: cover;
+                                            border-radius: 4px;
+                                            border: 2px solid white;
+                                            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                                            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                                        }
+                                        @keyframes popIn {
+                                            0% { transform: scale(0); }
+                                            100% { transform: scale(1); }
+                                        }
+                                    </style>
+                                    <div id="camera-container" class="bg-light rounded-3 d-flex align-items-center justify-content-center mb-3 mx-auto shadow-sm" style="width: 100%; max-width: 300px; aspect-ratio: 1/1; overflow: hidden; position: relative;">
                                         <video id="face-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
-                                        <div id="face-overlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end pb-4 justify-content-center flex-column" style="display: none !important;">
-                                            <span id="face-status" class="badge bg-dark bg-opacity-75 fs-6 shadow-sm px-3 py-2 text-wrap text-center mx-3"><i class="spinner-border spinner-border-sm me-2"></i> Initializing...</span>
+                                        <div id="flash-overlay" class="position-absolute top-0 start-0 w-100 h-100 bg-white" style="opacity: 0; pointer-events: none; z-index: 10;"></div>
+                                        <div id="face-overlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center pb-4 justify-content-center flex-column" style="display: none !important; z-index: 11;">
+                                            <span id="face-status" class="badge bg-dark bg-opacity-75 fs-6 shadow-sm px-3 py-2 text-wrap text-center mx-3 mt-auto mb-3"><i class="spinner-border spinner-border-sm me-2"></i> Initializing...</span>
                                         </div>
+                                        <div id="capture-gallery" class="position-absolute bottom-0 start-0 w-100 p-2 d-flex justify-content-center gap-2" style="z-index: 12; background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);"></div>
                                     </div>
                                     
                                     <button type="button" id="btn-start-enrollment" class="btn btn-primary rounded-pill px-4">
@@ -230,6 +272,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const statusTxt = document.getElementById('face-status');
     let stream = null;
 
+    function getBrightness(videoEl) {
+        const c = document.createElement('canvas');
+        c.width = videoEl.videoWidth || 320;
+        c.height = videoEl.videoHeight || 240;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(videoEl, 0, 0, c.width, c.height);
+        const imageData = ctx.getImageData(0, 0, c.width, c.height);
+        const data = imageData.data;
+        let colorSum = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            colorSum += (data[i] + data[i+1] + data[i+2]) / 3;
+        }
+        return colorSum / (data.length / 4);
+    }
+
     async function startCamera() {
         try {
             stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -269,32 +326,97 @@ document.addEventListener('DOMContentLoaded', function() {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
+            const gallery = document.getElementById('capture-gallery');
+            if (gallery) gallery.innerHTML = '';
+            const flashOverlay = document.getElementById('flash-overlay');
+            const cameraContainer = document.getElementById('camera-container');
             const images = [];
+
+            let aborted = false;
             
             for (let i = 1; i <= 5; i++) {
+                if (aborted) break;
                 let faceDetected = false;
                 while (!faceDetected) {
+                    if (aborted) break;
                     statusTxt.innerHTML = `<i class="bi bi-person-bounding-box me-1"></i> Snapshot ${i}/5<br><small class="fw-normal">Please look clearly at the camera...</small>`;
                     
-                    const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions());
+                    const brightness = getBrightness(video);
+                    if (brightness < 40) {
+                        statusTxt.innerHTML = `<i class="bi bi-moon me-1 text-warning"></i> <span class="text-warning">Too Dark! Please move to a brighter place.</span>`;
+                        await new Promise(r => setTimeout(r, 500));
+                        continue;
+                    }
+
+                    const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
                     
-                    if (detection && detection.score > 0.80 && detection.box.width > 70) {
-                        faceDetected = true;
-                        statusTxt.innerHTML = `<i class="bi bi-camera me-1 text-success"></i> <span class="text-success">Capturing ${i}/5...</span>`;
-                        // Brief pause to simulate flash/capture moment
-                        await new Promise(r => setTimeout(r, 200)); 
+                    if (detections && detections.length > 1) {
+                        if (i === 1) {
+                            statusTxt.innerHTML = `<i class="bi bi-people me-1 text-danger"></i> <span class="text-danger">Multiple faces detected! Please ensure only you are visible.</span>`;
+                            await new Promise(r => setTimeout(r, 500));
+                            continue;
+                        } else {
+                            aborted = true;
+                            alert("Intruder detected! Multiple faces found during enrollment. Process aborted.");
+                            break;
+                        }
+                    }
+                    
+                    if (detections && detections.length === 1) {
+                        const detection = detections[0];
+                        if (detection.score > 0.80 && detection.box.width > 70) {
+                            faceDetected = true;
+                            statusTxt.innerHTML = `<i class="bi bi-camera me-1 text-success"></i> <span class="text-success">Capturing ${i}/5...</span>`;
+                            await new Promise(r => setTimeout(r, 100)); 
+                        } else {
+                            await new Promise(r => setTimeout(r, 150));
+                        }
                     } else {
-                        // Wait before retrying detection
                         await new Promise(r => setTimeout(r, 150));
                     }
                 }
 
+                if (aborted) break;
+
+                if (flashOverlay) {
+                    flashOverlay.classList.remove('anim-flash');
+                    void flashOverlay.offsetWidth;
+                    flashOverlay.classList.add('anim-flash');
+                }
+
+                // Mirror the canvas context horizontally to match the mirrored video feed
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transform for future iterations
+                
+                // Create Flying Animation
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                const flyingImg = document.createElement('img');
+                flyingImg.src = dataUrl;
+                flyingImg.className = 'anim-snapshot';
+                if (cameraContainer) cameraContainer.appendChild(flyingImg);
+
+                setTimeout(() => {
+                    flyingImg.remove();
+                    if (gallery) {
+                        const thumb = document.createElement('img');
+                        thumb.src = dataUrl;
+                        thumb.className = 'gallery-thumb';
+                        gallery.appendChild(thumb);
+                    }
+                }, 700);
+
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
                 images.push(blob);
                 
-                // Pause slightly between successful shots for variations
-                await new Promise(r => setTimeout(r, 400));
+                await new Promise(r => setTimeout(r, 700));
+            }
+
+            if (aborted) {
+                overlay.style.setProperty('display', 'none', 'important');
+                btnStart.disabled = false;
+                return;
             }
             
             statusTxt.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i> Processing and uploading...';

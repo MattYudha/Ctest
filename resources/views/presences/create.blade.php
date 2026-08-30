@@ -1330,10 +1330,13 @@
                         isDetecting = true;
                         
                         try {
-                            const detection = await faceapi.detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+                            const detections = await faceapi.detectAllFaces(videoEl, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
                             if (ctx && overlay) ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-                            if (detection) {
+                            if (detections && detections.length > 1) {
+                                statusEl.innerHTML = '<span class="badge bg-warning bg-opacity-10 text-warning rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-people"></i> Multiple faces detected. Please ensure only your face is visible.</span>';
+                            } else if (detections && detections.length === 1) {
+                                const detection = detections[0];
                                 drawFaceBox(ctx, detection.detection.box);
                                 if (detection.detection.score >= 0.50 && detection.detection.box.width >= 50) {
                                     if (!isVerifying) {
@@ -1443,25 +1446,29 @@
                                 consecutiveOpenFrames = 0;
                             }
 
-                            if (DEBUG_BLINK && videoContainer) {
-                                let debugDiv = document.getElementById('debug-blink-' + mode);
-                                if (!debugDiv) {
-                                    debugDiv = document.createElement('div');
-                                    debugDiv.id = 'debug-blink-' + mode;
-                                    debugDiv.style = "position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.7); color:#0f0; padding:10px; font-family:monospace; font-size:12px; z-index:9999; border-radius:5px;";
-                                    videoContainer.appendChild(debugDiv);
-                                }
-                                debugDiv.innerHTML = `
-                                    <strong>BLINK DEBUG (MediaPipe)</strong><br>
-                                    Blink L: ${leftBlink.toFixed(3)}<br>
-                                    Blink R: ${rightBlink.toFixed(3)}<br>
-                                    Blink Score: ${blinkScore.toFixed(3)}<br>
-                                    State: ${eyeState}<br>
-                                    Clsd Frms: ${consecutiveClosedFrames}<br>
-                                    Open Frms: ${consecutiveOpenFrames}<br>
-                                    Infer Time: ${inferTime.toFixed(1)}ms<br>
-                                    FPS (est): ${Math.round(1000 / inferTime)}
-                                `;
+                            if (mpResult.faceLandmarks && mpResult.faceLandmarks.length > 0 && ctx && overlay) {
+                                const landmarks = mpResult.faceLandmarks[0];
+                                const w = overlay.width;
+                                const h = overlay.height;
+                                
+                                // Approximate eye indices in MediaPipe Face Mesh
+                                const eyeIndices = [33, 133, 159, 145, 263, 362, 386, 374];
+                                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                                
+                                eyeIndices.forEach(idx => {
+                                    const pt = landmarks[idx];
+                                    if (pt) {
+                                        const px = pt.x * w;
+                                        const py = pt.y * h;
+                                        if (px < minX) minX = px;
+                                        if (py < minY) minY = py;
+                                        if (px > maxX) maxX = px;
+                                        if (py > maxY) maxY = py;
+                                    }
+                                });
+                                
+                                const padX = 20, padY = 20;
+                                drawHUDBox(ctx, minX - padX, minY - padY, (maxX - minX) + padX * 2, (maxY - minY) + padY * 2, '#00d4ff');
                             }
                         }
                     } else if (stage === 2) {
@@ -1469,6 +1476,9 @@
                         if (!isVerifying) {
                             isVerifying = true;
                             clearInterval(interval);
+                            
+                            // Clear any remaining bounding boxes
+                            if (ctx && overlay) ctx.clearRect(0, 0, overlay.width, overlay.height);
                             
                             let countdown = 3;
                             statusEl.innerHTML = `<span class="badge bg-success bg-opacity-10 text-success rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-${countdown}-circle"></i> Liveness OK! Get Ready...</span>`;
