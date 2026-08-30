@@ -1188,7 +1188,7 @@
 
                 // Load MediaPipe Local
                 if (typeof faceLandmarker === 'undefined' || !window.faceLandmarker) {
-                    const { FaceLandmarker, FilesetResolver } = await import('{{ asset("vendor/mediapipe/vision_bundle.js") }}');
+                    const { FaceLandmarker, FilesetResolver } = await import('{{ asset("vendor/mediapipe/vision_bundle_module.js") }}');
                     const filesetResolver = await FilesetResolver.forVisionTasks('{{ asset("vendor/mediapipe/wasm") }}');
                     window.faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
                         baseOptions: {
