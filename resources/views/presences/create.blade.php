@@ -1186,6 +1186,21 @@
                 await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
                 await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
 
+                // Load MediaPipe Local
+                if (typeof faceLandmarker === 'undefined' || !faceLandmarker) {
+                    const { FaceLandmarker, FilesetResolver } = await import('{{ asset("vendor/mediapipe/vision_bundle.mjs") }}');
+                    const filesetResolver = await FilesetResolver.forVisionTasks('{{ asset("vendor/mediapipe/wasm") }}');
+                    window.faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+                        baseOptions: {
+                            modelAssetPath: '{{ asset("vendor/mediapipe/face_landmarker.task") }}',
+                            delegate: 'GPU'
+                        },
+                        outputFaceBlendshapes: true,
+                        runningMode: 'VIDEO',
+                        numFaces: 1
+                    });
+                }
+
                 statusEl.innerHTML =
                     '<span class="badge bg-info bg-opacity-10 text-info rounded-3 px-3 py-2"><i class="bi bi-person-bounding-box"></i> Waiting for face...</span>';
                 startFaceDetectionLoop(mode, videoEl, statusEl, videoContainer, previewContainer, previewImg);
@@ -1215,6 +1230,17 @@
                     </div>`;
             }
         }
+
+        const BLINK_CONFIG = {
+            closeThreshold: 0.22,
+            openThreshold: 0.27,
+            minClosedFrames: 2,
+            minOpenFrames: 2,
+            minBlinkDuration: 80,
+            maxBlinkDuration: 800,
+            cooldown: 500
+        };
+        const DEBUG_BLINK = true;
 
         function calculateEAR(eye) {
             const A = Math.hypot(eye[1].x - eye[5].x, eye[1].y - eye[5].y);
@@ -1267,10 +1293,17 @@
         }
 
         function startFaceDetectionLoop(mode, videoEl, statusEl, videoContainer, previewContainer, previewImg) {
-            let stage = 0; // 0: wait for blink, 1: verify & countdown
+            let stage = 0; // 0: wait for face, 1: verify & countdown
             let isVerifying = false;
-            let blinkDetected = false;
-            let blinkCountFrames = 0;
+            
+            // Blink State Machine Variables
+            let eyeState = 'OPEN';
+            let consecutiveClosedFrames = 0;
+            let consecutiveOpenFrames = 0;
+            let blinkStartTime = 0;
+            let lastBlinkTime = 0;
+            let lastVideoTime = -1;
+
             const overlay = document.getElementById('overlay-' + mode);
             let ctx = null;
             
@@ -1283,108 +1316,158 @@
             statusEl.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-person-bounding-box me-1"></i> Detecting Face...</span>';
 
             let isDetecting = false;
+            
+            // Fast polling loop (~30 FPS). face-api.js throttles via isDetecting flag.
             const interval = setInterval(async () => {
-                if (isDetecting) return;
-                isDetecting = true;
-
                 try {
                     if (videoEl.videoWidth > 0 && overlay && overlay.width !== videoEl.videoWidth) {
                         overlay.width = videoEl.videoWidth;
                         overlay.height = videoEl.videoHeight;
                     }
 
-                    const detection = await faceapi.detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions())
-                        .withFaceLandmarks();
-
-                    if (ctx && overlay) {
-                        ctx.clearRect(0, 0, overlay.width, overlay.height);
-                    }
-
-                // 1. Score > 0.50 ensures it's a face (lowered for bad cameras).
-                // 2. Box Width > 50 ensures the face isn't too far away.
-                if (detection) {
-                    if (ctx) {
-                        if (stage === 0) {
-                            drawFaceBox(ctx, detection.detection.box);
-                        } else if (stage === 1) {
-                            drawEyesBox(ctx, detection.landmarks);
-                        }
-                        // stage 2 does not draw bounding box
-                    }
-
-                    if (detection.detection.score < 0.50 || detection.detection.box.width < 50) {
-                        if (stage === 0) {
-                            statusEl.innerHTML = '<span class="badge bg-warning bg-opacity-10 text-warning rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-arrows-fullscreen"></i> Please Move Closer to the Camera</span>';
-                        }
-                        return;
-                    }
-
                     if (stage === 0) {
-                        // STAGE 0: VERIFY IDENTITY FIRST
-                        if (!isVerifying) {
-                            isVerifying = true;
-                            statusEl.innerHTML = '<span class="badge bg-primary bg-opacity-10 text-primary rounded-3 px-3 py-2 fs-6 shadow-sm"><i class="bi bi-arrow-repeat"></i> Verifying Identity...</span>';
-                            
-                            const canvas = document.createElement('canvas');
-                            canvas.width = videoEl.videoWidth;
-                            canvas.height = videoEl.videoHeight;
-                            const tctx = canvas.getContext('2d');
-                            tctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-                            const photoData = canvas.toDataURL('image/jpeg', 0.8);
-                            
-                            try {
-                                const response = await fetch('/api/face/verify', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                                    },
-                                    body: JSON.stringify({ image: photoData })
-                                });
-                                const result = await response.json();
-                                
-                                if (result.success) {
-                                    stage = 1; // Verified! Move to blink check
-                                    isVerifying = false;
-                                } else {
-                                    statusEl.innerHTML = '<span class="badge bg-danger bg-opacity-10 text-danger rounded-3 px-3 py-2 fs-6 shadow-sm"><i class="bi bi-x-circle me-1"></i> Face Not Recognized!</span>';
-                                    setTimeout(() => {
-                                        isVerifying = false;
-                                        if (stage === 0) {
-                                            statusEl.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary rounded-3 px-3 py-2 fs-6 shadow-sm"><i class="bi bi-person-bounding-box me-1"></i> Detecting Face...</span>';
+                        if (isDetecting) return;
+                        isDetecting = true;
+                        
+                        try {
+                            const detection = await faceapi.detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+                            if (ctx && overlay) ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+                            if (detection) {
+                                drawFaceBox(ctx, detection.detection.box);
+                                if (detection.detection.score >= 0.50 && detection.detection.box.width >= 50) {
+                                    if (!isVerifying) {
+                                        isVerifying = true;
+                                        statusEl.innerHTML = '<span class="badge bg-primary bg-opacity-10 text-primary rounded-3 px-3 py-2 fs-6 shadow-sm"><i class="bi bi-arrow-repeat"></i> Verifying Identity...</span>';
+                                        
+                                        const canvas = document.createElement('canvas');
+                                        canvas.width = videoEl.videoWidth;
+                                        canvas.height = videoEl.videoHeight;
+                                        const tctx = canvas.getContext('2d');
+                                        tctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+                                        const photoData = canvas.toDataURL('image/jpeg', 0.8);
+                                        
+                                        try {
+                                            const response = await fetch('/api/face/verify', {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                                },
+                                                body: JSON.stringify({ image: photoData })
+                                            });
+                                            const result = await response.json();
+                                            
+                                            if (result.success) {
+                                                stage = 1; // Verified! Move to blink check via MediaPipe
+                                                isVerifying = false;
+                                                statusEl.innerHTML = '<span class="badge bg-info bg-opacity-10 text-info rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap lh-sm"><i class="bi bi-eye"></i> Face Matched!<br>Please <strong>BLINK YOUR EYES</strong> to confirm...</span>';
+                                            } else {
+                                                statusEl.innerHTML = '<span class="badge bg-danger bg-opacity-10 text-danger rounded-3 px-3 py-2 fs-6 shadow-sm"><i class="bi bi-x-circle me-1"></i> Face Not Recognized!</span>';
+                                                setTimeout(() => {
+                                                    isVerifying = false;
+                                                    if (stage === 0) statusEl.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary rounded-3 px-3 py-2 fs-6 shadow-sm"><i class="bi bi-person-bounding-box me-1"></i> Detecting Face...</span>';
+                                                }, 2000);
+                                            }
+                                        } catch (e) {
+                                            isVerifying = false;
                                         }
-                                    }, 2000);
+                                    }
+                                } else {
+                                    statusEl.innerHTML = '<span class="badge bg-warning bg-opacity-10 text-warning rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-arrows-fullscreen"></i> Please Move Closer</span>';
                                 }
-                            } catch (e) {
-                                isVerifying = false;
+                            } else {
+                                statusEl.innerHTML = '<span class="badge bg-danger bg-opacity-10 text-danger rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-exclamation-triangle me-1"></i> Face Not Detected</span>';
                             }
+                        } finally {
+                            isDetecting = false;
                         }
                     } else if (stage === 1) {
-                        // STAGE 1: WAIT FOR BLINK TO PROVE LIVENESS
-                        const landmarks = detection.landmarks;
-                        const leftEye = landmarks.getLeftEye();
-                        const rightEye = landmarks.getRightEye();
-                        const ear = (calculateEAR(leftEye) + calculateEAR(rightEye)) / 2.0;
+                        // STAGE 1: MEDIAPIPE BLINK DETECTION
+                        if (!window.faceLandmarker) return; 
+                        
+                        const startTimeMs = performance.now();
+                        if (lastVideoTime !== videoEl.currentTime) {
+                            lastVideoTime = videoEl.currentTime;
+                            
+                            const mpResult = window.faceLandmarker.detectForVideo(videoEl, startTimeMs);
+                            const inferTime = performance.now() - startTimeMs;
+                            
+                            if (ctx && overlay) ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-                        // BALANCED BLINK THRESHOLD (0.27) - Not too tight, not too loose
-                        if (ear < 0.27) {
-                            blinkCountFrames++;
-                        } else {
-                            if (blinkCountFrames >= 1) {
-                                stage = 2; // Blink detected, proceed to countdown
+                            let leftBlink = 0, rightBlink = 0, blinkScore = 0;
+
+                            if (mpResult.faceBlendshapes && mpResult.faceBlendshapes.length > 0) {
+                                const blendshapes = mpResult.faceBlendshapes[0].categories;
+                                leftBlink = blendshapes.find(b => b.categoryName === 'eyeBlinkLeft')?.score || 0;
+                                rightBlink = blendshapes.find(b => b.categoryName === 'eyeBlinkRight')?.score || 0;
+                                
+                                blinkScore = Math.max(leftBlink, rightBlink);
+                                const now = Date.now();
+
+                                const isClosed = blinkScore > 0.40;
+                                const isOpen = blinkScore < 0.28;
+
+                                if (eyeState === 'OPEN') {
+                                    if (isClosed) {
+                                        consecutiveClosedFrames++;
+                                        if (consecutiveClosedFrames >= 2) {
+                                            eyeState = 'CLOSED';
+                                            blinkStartTime = now;
+                                            consecutiveOpenFrames = 0;
+                                        }
+                                    } else if (isOpen) {
+                                        consecutiveClosedFrames = 0;
+                                    }
+                                } else if (eyeState === 'CLOSED') {
+                                    if (isOpen) {
+                                        consecutiveOpenFrames++;
+                                        if (consecutiveOpenFrames >= 2) {
+                                            const blinkDuration = now - blinkStartTime;
+                                            
+                                            if (blinkDuration >= 30 && blinkDuration <= 2000 && (now - lastBlinkTime) > 500) {
+                                                lastBlinkTime = now;
+                                                stage = 2; // Valid blink!
+                                            }
+                                            eyeState = 'OPEN';
+                                            consecutiveClosedFrames = 0;
+                                        }
+                                    } else if (isClosed) {
+                                        consecutiveOpenFrames = 0;
+                                    }
+                                }
+                            } else {
+                                // Face lost
+                                eyeState = 'OPEN';
+                                consecutiveClosedFrames = 0;
+                                consecutiveOpenFrames = 0;
                             }
-                            blinkCountFrames = 0;
-                        }
 
-                        if (stage === 1) {
-                            statusEl.innerHTML = '<span class="badge bg-info bg-opacity-10 text-info rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap lh-sm"><i class="bi bi-eye"></i> Face Matched!<br>Please blink to confirm...</span>';
+                            if (DEBUG_BLINK && videoContainer) {
+                                let debugDiv = document.getElementById('debug-blink-' + mode);
+                                if (!debugDiv) {
+                                    debugDiv = document.createElement('div');
+                                    debugDiv.id = 'debug-blink-' + mode;
+                                    debugDiv.style = "position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.7); color:#0f0; padding:10px; font-family:monospace; font-size:12px; z-index:9999; border-radius:5px;";
+                                    videoContainer.appendChild(debugDiv);
+                                }
+                                debugDiv.innerHTML = `
+                                    <strong>BLINK DEBUG (MediaPipe)</strong><br>
+                                    Blink L: ${leftBlink.toFixed(3)}<br>
+                                    Blink R: ${rightBlink.toFixed(3)}<br>
+                                    Blink Score: ${blinkScore.toFixed(3)}<br>
+                                    State: ${eyeState}<br>
+                                    Clsd Frms: ${consecutiveClosedFrames}<br>
+                                    Open Frms: ${consecutiveOpenFrames}<br>
+                                    Infer Time: ${inferTime.toFixed(1)}ms<br>
+                                    FPS (est): ${Math.round(1000 / inferTime)}
+                                `;
+                            }
                         }
                     } else if (stage === 2) {
                         // STAGE 2: COUNTDOWN AND CAPTURE
                         if (!isVerifying) {
                             isVerifying = true;
-                            
-                            // STOP heavy face detection loop immediately to free up CPU for smooth countdown
                             clearInterval(interval);
                             
                             let countdown = 3;
@@ -1407,7 +1490,6 @@
                                     canvas.width = targetWidth;
                                     canvas.height = targetHeight;
                                     const tctx = canvas.getContext('2d');
-
                                     tctx.translate(targetWidth, 0);
                                     tctx.scale(-1, 1);
                                     tctx.drawImage(videoEl, 0, 0, targetWidth, targetHeight);
@@ -1426,19 +1508,11 @@
                             }, 1000);
                         }
                     }
-                } else {
-                    // Face lost
-                    if (stage === 0) {
-                        statusEl.innerHTML = '<span class="badge bg-danger bg-opacity-10 text-danger rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-exclamation-triangle me-1"></i> Face Not Detected</span>';
-                    }
-                }
                 } catch (err) {
                     console.error('Face detection error:', err);
-                } finally {
-                    isDetecting = false;
                 }
-            }, 80); // Reduced interval to 80ms to catch faster blinks 
-
+            }, 33); // 33ms (~30 FPS)
+            
             if (mode === 'wfo') faceDetectionInterval = interval;
             else faceDetectionIntervals[mode] = interval;
         }

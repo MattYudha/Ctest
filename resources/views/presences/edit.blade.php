@@ -68,8 +68,8 @@
                             name="check_in"
                             class="form-control"
                             id="check_in"
-                            value="{{ old('check_in', $presence->check_in ? \Carbon\Carbon::parse($presence->check_in)->format('Y-m-d\TH:i') : '') }}"
-                            step="60"
+                            value="{{ old('check_in', $presence->check_in ? \Carbon\Carbon::parse($presence->check_in)->format('Y-m-d\TH:i:s') : '') }}"
+                            step="1"
                             required
                         />
                     </div>
@@ -81,9 +81,24 @@
                             name="check_out"
                             class="form-control"
                             id="check_out"
-                            value="{{ old('check_out', $presence->check_out ? \Carbon\Carbon::parse($presence->check_out)->format('Y-m-d\TH:i') : '') }}"
-                            step="60"
+                            value="{{ old('check_out', $presence->check_out ? \Carbon\Carbon::parse($presence->check_out)->format('Y-m-d\TH:i:s') : '') }}"
+                            step="1"
                         />
+                    </div>
+
+                    <div class="mb-3 form-check mt-4">
+                        <input type="hidden" name="is_late" value="0">
+                        <input 
+                            type="checkbox" 
+                            name="is_late" 
+                            class="form-check-input" 
+                            id="is_late" 
+                            value="1" 
+                            {{ old('is_late', $presence->is_late) ? 'checked' : '' }}
+                        >
+                        <label class="form-check-label" for="is_late">
+                            Mark as Late
+                        </label>
                     </div>
 
                     <div class="mb-3">

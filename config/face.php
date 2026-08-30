@@ -7,10 +7,10 @@ return [
     |--------------------------------------------------------------------------
     |
     | Default minimum cosine similarity required for a match.
-    | Range is -1.0 to 1.0, but practically above 0.85 indicates a match.
+    | Set to 0.70 (70%) to accommodate various lighting conditions.
     |
     */
-    'threshold' => env('FACE_RECOGNITION_THRESHOLD', 0.85),
+    'threshold' => env('FACE_RECOGNITION_THRESHOLD', 0.70),
 
     /*
     |--------------------------------------------------------------------------

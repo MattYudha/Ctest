@@ -34,11 +34,14 @@ class PresencesController extends Controller
                         route('presences.show', $row->id) .
                         '" class="btn btn-outline-info" title="View Details"><i class="bi bi-eye"></i></a>';
 
-                    if (in_array(session('role'), ['HR Administrator', \App\Constants\Roles::MASTER_ADMIN])) {
+                    if (session('role') === \App\Constants\Roles::MASTER_ADMIN) {
                         $btns .=
                             '<a href="' .
                             route('presences.edit', $row->id) .
                             '" class="btn btn-outline-warning"><i class="bi bi-pencil"></i></a>';
+                    }
+
+                    if (in_array(session('role'), ['HR Administrator', \App\Constants\Roles::MASTER_ADMIN])) {
                         $csrf = csrf_token();
                         $btns .=
                             '
@@ -140,8 +143,8 @@ class PresencesController extends Controller
         $holidayName = '';
 
         if (Carbon::today()->isWeekend()) {
-            $isHolidayToday = true;
-            $holidayName = 'Weekend (Saturday / Sunday)';
+            // $isHolidayToday = true;
+            // $holidayName = 'Weekend (Saturday / Sunday)';
         } else {
             foreach ($holidays as $h) {
                 if ($h['date'] === $todayDate) {
@@ -165,12 +168,12 @@ class PresencesController extends Controller
         $month = Carbon::today()->month;
 
         if (Carbon::today()->isWeekend()) {
-            return redirect()
-                ->route('presences.index')
-                ->with(
-                    'error',
-                    'System Closed: Today is the weekend (Saturday/Sunday). You cannot perform self-attendance.',
-                );
+            // return redirect()
+            //     ->route('presences.index')
+            //     ->with(
+            //         'error',
+            //         'System Closed: Today is the weekend (Saturday/Sunday). You cannot perform self-attendance.',
+            //     );
         }
 
         $holidayDates = HolidayService::getHolidayDates($year, $month);
@@ -238,12 +241,12 @@ class PresencesController extends Controller
             // ==========================================
 
             if (Carbon::today()->isWeekend()) {
-                return redirect()
-                    ->back()
-                    ->with(
-                        'error',
-                        'System Closed: Today is the weekend (Saturday/Sunday). You cannot perform attendance.',
-                    );
+                // return redirect()
+                //     ->back()
+                //     ->with(
+                //         'error',
+                //         'System Closed: Today is the weekend (Saturday/Sunday). You cannot perform attendance.',
+                //     );
             }
 
             // holiday check: reject attendance if today is a public holiday / collective leave
@@ -634,6 +637,10 @@ class PresencesController extends Controller
     // show the form for editing an attendance record
     public function edit(Presence $presence)
     {
+        if (session('role') !== \App\Constants\Roles::MASTER_ADMIN) {
+            return redirect()->route('presences.index')->with('error', 'Unauthorized access. Only Super Admin can edit presences.');
+        }
+
         $employees = Employee::all();
         return view('presences.edit', compact('presence', 'employees'));
     }
@@ -641,11 +648,16 @@ class PresencesController extends Controller
     // update the specified attendance record
     public function update(Request $request, Presence $presence)
     {
+        if (session('role') !== \App\Constants\Roles::MASTER_ADMIN) {
+            return redirect()->route('presences.index')->with('error', 'Unauthorized access. Only Super Admin can update presences.');
+        }
+
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'check_in' => 'required|date',
             'check_out' => 'nullable|date|after_or_equal:check_in',
             'status' => 'required|in:present,absent,leave',
+            'is_late' => 'boolean',
         ]);
 
         $presence->update($request->all());

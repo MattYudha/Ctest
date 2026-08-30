@@ -114,7 +114,7 @@ class FaceRecognitionService
 
             $currentDto = $this->generator->generate($imagePath);
             $similarity = $this->comparator->calculateSimilarity($profile->embedding, $currentDto->embedding);
-            $threshold = config('face.threshold', 0.85);
+            $threshold = config('face.threshold', 0.70);
 
             if ($similarity >= $threshold) {
                 return [
