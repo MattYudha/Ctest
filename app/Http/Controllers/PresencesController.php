@@ -143,8 +143,8 @@ class PresencesController extends Controller
         $holidayName = '';
 
         if (Carbon::today()->isWeekend()) {
-            // $isHolidayToday = true;
-            // $holidayName = 'Weekend (Saturday / Sunday)';
+            $isHolidayToday = true;
+            $holidayName = 'Weekend (Saturday / Sunday)';
         } else {
             foreach ($holidays as $h) {
                 if ($h['date'] === $todayDate) {
@@ -168,12 +168,12 @@ class PresencesController extends Controller
         $month = Carbon::today()->month;
 
         if (Carbon::today()->isWeekend()) {
-            // return redirect()
-            //     ->route('presences.index')
-            //     ->with(
-            //         'error',
-            //         'System Closed: Today is the weekend (Saturday/Sunday). You cannot perform self-attendance.',
-            //     );
+            return redirect()
+                ->route('presences.index')
+                ->with(
+                    'error',
+                    'System Closed: Today is the weekend (Saturday/Sunday). You cannot perform self-attendance.',
+                );
         }
 
         $holidayDates = HolidayService::getHolidayDates($year, $month);
@@ -241,12 +241,12 @@ class PresencesController extends Controller
             // ==========================================
 
             if (Carbon::today()->isWeekend()) {
-                // return redirect()
-                //     ->back()
-                //     ->with(
-                //         'error',
-                //         'System Closed: Today is the weekend (Saturday/Sunday). You cannot perform attendance.',
-                //     );
+                return redirect()
+                    ->back()
+                    ->with(
+                        'error',
+                        'System Closed: Today is the weekend (Saturday/Sunday). You cannot perform attendance.',
+                    );
             }
 
             // holiday check: reject attendance if today is a public holiday / collective leave
