@@ -164,11 +164,11 @@
                             <div class="col-md-6 text-center">
                                 @if(Auth::user() && Auth::user()->faceProfile)
                                     @php
-                                        $facePath = 'faces/user_' . Auth::id() . '.jpg';
+                                        $facePath = 'storage/faces/user_' . Auth::id() . '.jpg';
                                         $hasFaceImg = file_exists(public_path($facePath));
                                     @endphp
                                     @if($hasFaceImg)
-                                        <img src="{{ asset($facePath) }}" alt="Enrolled Face" class="img-fluid rounded-3 mb-3 shadow-sm border" style="width: 250px; height: 250px; object-fit: cover;">
+                                        <img src="{{ asset($facePath) }}?v={{ filemtime(public_path($facePath)) }}" alt="Enrolled Face" class="img-fluid rounded-3 mb-3 shadow-sm border" style="width: 250px; height: 250px; object-fit: cover;">
                                     @else
                                         <div class="bg-secondary bg-opacity-10 rounded-3 d-flex align-items-center justify-content-center mb-3 mx-auto text-secondary shadow-sm" style="height: 250px; width: 250px;">
                                             <i class="bi bi-person-bounding-box" style="font-size: 4rem;"></i>

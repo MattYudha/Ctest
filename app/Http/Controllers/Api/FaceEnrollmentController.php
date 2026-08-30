@@ -33,7 +33,7 @@ class FaceEnrollmentController extends Controller
 
         // Cleanup or store
         if ($result['success']) {
-            $facesDir = public_path('faces');
+            $facesDir = storage_path('app/public/faces');
             if (!file_exists($facesDir)) {
                 mkdir($facesDir, 0777, true);
             }
@@ -42,6 +42,15 @@ class FaceEnrollmentController extends Controller
             $finalPath = $facesDir . '/user_' . $userId . '.jpg';
             if (file_exists($imagePaths[0])) {
                 rename($imagePaths[0], $finalPath);
+            }
+            
+            // Cleanup the remaining 4 images if storeOriginal is false
+            if (!$storeOriginal) {
+                for ($i = 1; $i < count($imagePaths); $i++) {
+                    if (file_exists($imagePaths[$i])) {
+                        unlink($imagePaths[$i]);
+                    }
+                }
             }
             
             return response()->json($result);
@@ -68,7 +77,7 @@ class FaceEnrollmentController extends Controller
         // Try to delete the image if it exists
         $extensions = ['jpeg', 'png', 'jpg'];
         foreach ($extensions as $ext) {
-            $filePath = public_path('faces/user_' . $user->id . '.' . $ext);
+            $filePath = storage_path('app/public/faces/user_' . $user->id . '.' . $ext);
             if (file_exists($filePath)) {
                 unlink($filePath);
             }

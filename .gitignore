@@ -69,5 +69,5 @@ python-face-service/__pycache__/
 .pytest_cache/
 
 # User Uploaded Media
-/public/faces/*
-!/public/faces/.gitkeep
+/storage/app/public/faces/*
+!/storage/app/public/faces/.gitkeep
