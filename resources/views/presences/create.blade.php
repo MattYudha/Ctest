@@ -1490,7 +1490,7 @@
                                 } else {
                                     clearInterval(countdownInterval);
                                     
-                                    statusEl.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-check-circle"></i> Identity Verified! Wait...</span>';
+                                    statusEl.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-check-circle"></i> Identity Verified!</span>';
 
                                     const canvas = document.createElement('canvas');
                                     const targetWidth = 480;
