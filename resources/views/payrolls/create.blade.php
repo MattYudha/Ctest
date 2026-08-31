@@ -149,6 +149,21 @@
         </div>
 
         <div id="payroll-details" style="display: none">
+            {{-- section 1.5: Payroll Mode (Auto Detected) --}}
+            <div id="internship-alert-container" class="card shadow-sm border-start border-primary border-4 rounded-3 mb-4 d-none">
+                <div class="card-body p-3">
+                    <input type="hidden" id="internship_mode_active" value="0">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="mb-1 fw-bold text-primary"><i class="bi bi-info-circle-fill me-2"></i> Internship / Magang Detected</h6>
+                            <small class="text-muted">The employee status indicates an internship role.</small>
+                        </div>
+                    </div>
+                    <div class="alert alert-info mt-3 mb-0 py-2 px-3 small">
+                        <strong>Automatic Calculation:</strong> The Basic Salary field below acts as a <code>Daily Rate</code>. Total Basic Salary will be calculated as <code>Daily Rate × WFO Days</code> upon submission. Most deductions are automatically disabled and set to 0.
+                    </div>
+                </div>
+            </div>
             {{-- section 2: earnings --}}
             <div class="card shadow-sm border-start border-success border-4 rounded-3 mb-4">
                 <div class="card-header bg-success-subtle border-bottom-0 py-3 rounded-top-4">
@@ -1145,7 +1160,57 @@
                     document.querySelectorAll('.format-rupiah').forEach((el) => {
                         el.value = parseRupiah(el.value);
                     });
+
+                    // Internship Mode: overwrite salary with the computed WFO total
+                    const isIntern = document.getElementById('internship_mode_active').value === '1';
+                    if (isIntern) {
+                        const salaryInput = document.getElementById('salary');
+                        const wfoDays = parseInt(document.getElementById('breakdown_wfo').innerText) || 0;
+                        salaryInput.value = parseInt(salaryInput.value) * wfoDays;
+                        
+                        // Force deductions to 0 in submission (leaving other_deduction as it is)
+                        ['late_count', 'absent_count', 'late_deduction', 'absent_deduction', 'penalty_amount', 'bpjs_kes', 'bpjs_tk', 'pph21'].forEach(id => {
+                            const el = document.getElementById(id);
+                            if(el) el.value = 0;
+                        });
+                    }
                 });
+
+                // Helper to enable/disable internship mode
+                function setInternshipMode(isActive) {
+                    const alertContainer = document.getElementById('internship-alert-container');
+                    const internshipState = document.getElementById('internship_mode_active');
+                    const salaryLabel = document.querySelector('label[for="salary"]');
+                    
+                    if (isActive) {
+                        internshipState.value = '1';
+                        alertContainer.classList.remove('d-none');
+                        salaryLabel.innerHTML = 'Daily Rate (Intern) <span class="text-danger">*</span>';
+                        
+                        // disable and zero out specific deductions UI (other_deduction remains open)
+                        ['late_count', 'absent_count', 'late_deduction', 'absent_deduction', 'penalty_amount', 'bpjs_kes', 'bpjs_tk'].forEach(id => {
+                            const el = document.getElementById(id);
+                            if(el) {
+                                el.value = '0';
+                                el.readOnly = true;
+                                el.classList.add('bg-light');
+                            }
+                        });
+                    } else {
+                        internshipState.value = '0';
+                        alertContainer.classList.add('d-none');
+                        salaryLabel.innerHTML = 'Basic Salary <span class="text-danger">*</span>';
+                        
+                        // re-enable deductions UI
+                        ['late_count', 'absent_count', 'late_deduction', 'absent_deduction', 'penalty_amount', 'bpjs_kes', 'bpjs_tk'].forEach(id => {
+                            const el = document.getElementById(id);
+                            if(el) {
+                                el.readOnly = false;
+                                el.classList.remove('bg-light');
+                            }
+                        });
+                    }
+                }
 
                 // auto check and fetch payroll data
                 function checkAndFetchData() {
@@ -1260,6 +1325,11 @@
                                 infoEl.classList.remove('d-none');
                                 infoText.textContent = `Working days: ${d.working_days} | Present: ${d.days_present} | Late: ${d.late_count} | Absent: ${d.absent_count} | Leave: ${d.leave_count}`;
 
+                                // Auto detect internship mode
+                                const empStatus = (d.employee_status || '').toLowerCase();
+                                const isIntern = empStatus.includes('magang') || empStatus.includes('intern');
+                                setInternshipMode(isIntern);
+
                                 recalculate();
                             }
                         })
@@ -1313,6 +1383,7 @@
                 function recalculate() {
                     const v = (id) => parseRupiah(document.getElementById(id).value);
                     const fmt = (n) => 'Rp ' + Math.round(n).toLocaleString('id-ID');
+                    const isInternship = document.getElementById('internship_mode_active') && document.getElementById('internship_mode_active').value === '1';
 
                     const earningsFields = ['salary', 'transport_allowance', 'meal_allowance', 'position_allowance', 'overtime_amount', 'performance_bonus', 'attendance_bonus', 'other_bonus'];
                     const deductionsFields = ['late_deduction', 'absent_deduction', 'penalty_amount', 'bpjs_kes', 'bpjs_tk', 'pph21', 'other_deduction'];
@@ -1320,6 +1391,10 @@
                     let totalEarnings = 0;
                     earningsFields.forEach(f => {
                         let val = v(f);
+                        if (f === 'salary' && isInternship) {
+                            const wfoDays = parseInt(document.getElementById('breakdown_wfo').innerText) || 0;
+                            val = val * wfoDays;
+                        }
                         totalEarnings += val;
                         let el = document.getElementById('summary-' + f);
                         if (el) {
@@ -1338,6 +1413,7 @@
                     deductionsFields.forEach(f => {
                         if (f !== 'pph21') {
                             let val = v(f);
+                            if (isInternship && f !== 'other_deduction') val = 0; // ignore all deductions except other_deduction for intern
                             totalDeductionsExceptPph += val;
                             let el = document.getElementById('summary-' + f);
                             if (el) {
@@ -1353,7 +1429,9 @@
                     let pphZeroReason = '';
                     const missedTargetEl = document.getElementById('missedTarget');
                     
-                    if (netBeforePph >= 4500000) {
+                    if (isInternship) {
+                        pphZeroReason = 'Internship (Free)';
+                    } else if (netBeforePph >= 4500000) {
                         if (!missedTargetEl || !missedTargetEl.checked) {
                             const pphRate = window.currentPph21Rate ?? 0.5;
                             pph21Amount = netBeforePph * (pphRate / 100);
@@ -1378,7 +1456,8 @@
                     const totalDeductions = totalDeductionsExceptPph + pph21Amount;
                     const net = totalEarnings + reimbursementAmount - totalDeductions;
 
-                    const computedTotalSalary = v('salary') + v('transport_allowance') + v('meal_allowance') + v('position_allowance');
+                    const computedSalaryField = isInternship ? (v('salary') * (parseInt(document.getElementById('breakdown_wfo').innerText) || 0)) : v('salary');
+                    const computedTotalSalary = computedSalaryField + v('transport_allowance') + v('meal_allowance') + v('position_allowance');
                     const totalSalaryInput = document.getElementById('total_salary');
                     if (totalSalaryInput) {
                         totalSalaryInput.value = formatRibuan(Math.round(computedTotalSalary));

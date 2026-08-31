@@ -628,6 +628,7 @@ class PayrollsController extends Controller
                 'absent_murni' => $absentMurni,
                 'absent_wfo_deficit' => $penalizedWfoDeficit,
                 'employee_working_type' => $employee->working_type,
+                'employee_status' => $employee->employee_status,
                 'leave_count' => $leaveCount,
 
                 'wfo_count' => $wfoCount,
