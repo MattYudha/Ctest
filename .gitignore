@@ -71,3 +71,11 @@ python-face-service/__pycache__/
 # User Uploaded Media
 /storage/app/public/faces/*
 !/storage/app/public/faces/.gitkeep
+# KPI Debugging Files
+scratch/
+test_details.php
+kpi_regen.php
+database/seeders/MassKPISeeder.php
+database/seeders/KPITestSeeder.php
+tests/Feature/CheckinWFOKPITest.php
+tests/Unit/KPICalculationTest.php

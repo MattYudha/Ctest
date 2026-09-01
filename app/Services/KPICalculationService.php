@@ -210,7 +210,7 @@ class KPICalculationService
         $endDate = Carbon::createFromFormat('Y-m', $this->period)->endOfMonth();
         
         $tasks = Task::where('assigned_to', $this->employee->id)
-            ->whereBetween('due_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->whereBetween('due_date', [$startDate->format('Y-m-d 00:00:00'), $endDate->format('Y-m-d 23:59:59')])
             ->get();
             
         $total = $tasks->count();
@@ -227,12 +227,12 @@ class KPICalculationService
 
     public function calculateSalesMetrics()
     {
-        if (!$this->employee->user_id) return ['total' => 0, 'won' => 0, 'rate' => 0];
+        if (!$this->employee->user) return ['total' => 0, 'won' => 0, 'rate' => 0];
 
         $startDate = Carbon::createFromFormat('Y-m', $this->period)->startOfMonth();
         $endDate = Carbon::createFromFormat('Y-m', $this->period)->endOfMonth();
         
-        $deals = \App\Models\CrmDeal::where('created_by', $this->employee->user_id)
+        $deals = \App\Models\CrmDeal::where('created_by', $this->employee->user->id)
             ->whereBetween('created_at', [$startDate->format('Y-m-d 00:00:00'), $endDate->format('Y-m-d 23:59:59')])
             ->get();
             
@@ -250,13 +250,13 @@ class KPICalculationService
 
     public function calculateLetterMetrics()
     {
-        if (!$this->employee->user_id) return ['total' => 0, 'approved' => 0, 'rate' => 0];
+        if (!$this->employee->user) return ['total' => 0, 'approved' => 0, 'rate' => 0];
 
         $startDate = Carbon::createFromFormat('Y-m', $this->period)->startOfMonth();
         $endDate = Carbon::createFromFormat('Y-m', $this->period)->endOfMonth();
         
-        $letters = \App\Models\Letter::where('user_id', $this->employee->user_id)
-            ->whereBetween('created_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+        $letters = \App\Models\Letter::where('user_id', $this->employee->user->id)
+            ->whereBetween('created_date', [$startDate->format('Y-m-d 00:00:00'), $endDate->format('Y-m-d 23:59:59')])
             ->get();
             
         $total = $letters->count();
@@ -358,13 +358,21 @@ class KPICalculationService
             ['key' => 'task', 'label' => 'Penyelesaian Tugas', 'desc' => 'Persentase penyelesaian tugas pada bulan berjalan.', 'weight' => 0, 'applicable_roles' => ['*']],
             ['key' => 'sales', 'label' => 'Target Sales / Deal', 'desc' => 'Persentase deal yang berhasil dimenangkan.', 'weight' => 0, 'applicable_roles' => ['Sales']],
             ['key' => 'letter', 'label' => 'Pengelolaan Surat', 'desc' => 'Persentase surat yang disetujui.', 'weight' => 0, 'applicable_roles' => ['*']],
-            ['key' => 'cashbook', 'label' => 'Buku Kas / Cashbook', 'desc' => 'Disiplin input kas SLA <=24j (Finance) / Status klaim (Staf).', 'weight' => 0, 'applicable_roles' => ['*']],
+            ['key' => 'cashbook', 'label' => 'Buku Kas / Cashbook', 'desc' => 'Disiplin input kas SLA <=24j (Finance) / Status klaim (Staf).', 'weight' => 25, 'applicable_roles' => ['finance']],
+            ['key' => 'checkin_wfo', 'label' => 'Check-in (WFO)', 'desc' => 'Tingkat kedatangan tepat waktu khusus jadwal WFO.', 'weight' => 0, 'applicable_roles' => ['*']],
         ];
 
         $savedConfig = \App\Models\Setting::getValue('kpi_master_config');
         if ($savedConfig) {
             $parsed = json_decode($savedConfig, true);
             if (is_array($parsed)) {
+                // Ensure any newly added indicators in code appear in the saved config
+                $existingKeys = array_column($parsed, 'key');
+                foreach ($defaultConfig as $def) {
+                    if (!in_array($def['key'], $existingKeys)) {
+                        $parsed[] = $def;
+                    }
+                }
                 return $parsed;
             }
         }
@@ -376,7 +384,7 @@ class KPICalculationService
      */
     public static function calculateDynamicMetricsForEmployee(Employee $employee, $period = null, $snapshotConfig = null)
     {
-        $service = new self($employee, $period);
+        $service = new static($employee, $period);
         
         // 1. Get configuration
         $config = $snapshotConfig ?? self::getMasterKPIConfig();
@@ -403,7 +411,9 @@ class KPICalculationService
             
             // Hard-mapping check for N/A
             $applicableRoles = $indicator['applicable_roles'] ?? [];
-            $isApplicable = in_array('*', $applicableRoles) || !empty(array_intersect($employeeRoles, $applicableRoles));
+            $normalizedAppRoles = array_map('strtolower', $applicableRoles);
+            $normalizedEmpRoles = array_map('strtolower', $employeeRoles);
+            $isApplicable = in_array('*', $applicableRoles) || !empty(array_intersect($normalizedEmpRoles, $normalizedAppRoles));
             
             if ($isApplicable) {
                 // Calculate actual rate
@@ -420,18 +430,38 @@ class KPICalculationService
                         break;
                     case 'task':
                         $raw = $service->calculateTaskMetrics();
-                        $rate = $raw['rate'] ?? 0;
+                        if ((int)($raw['total'] ?? 0) === 0) {
+                            $isApplicable = false;
+                        } else {
+                            $rate = $raw['rate'] ?? 0;
+                        }
                         break;
                     case 'sales':
                         $raw = $service->calculateSalesMetrics();
-                        $rate = $raw['rate'] ?? 0;
+                        if ((int)($raw['total'] ?? 0) === 0) {
+                            $isApplicable = false;
+                        } else {
+                            $rate = $raw['rate'] ?? 0;
+                        }
                         break;
                     case 'letter':
                         $raw = $service->calculateLetterMetrics();
-                        $rate = $raw['rate'] ?? 0;
+                        if ((int)($raw['total'] ?? 0) === 0) {
+                            $isApplicable = false;
+                        } else {
+                            $rate = $raw['rate'] ?? 0;
+                        }
                         break;
                     case 'cashbook':
                         $raw = $service->calculateCashbookMetrics();
+                        if (!empty($raw['is_na'])) {
+                            $isApplicable = false; // Trigger N/A redistribution
+                        } else {
+                            $rate = $raw['rate'] ?? 0;
+                        }
+                        break;
+                    case 'checkin_wfo':
+                        $raw = $service->calculateCheckinWFOMetrics();
                         if (!empty($raw['is_na'])) {
                             $isApplicable = false; // Trigger N/A redistribution
                         } else {
@@ -548,6 +578,46 @@ class KPICalculationService
         return [
             'score' => round($finalScore, 2),
             'level' => $level
+        ];
+    }
+
+    public function calculateCheckinWFOMetrics()
+    {
+        $startDate = Carbon::createFromFormat('Y-m', $this->period)->startOfMonth();
+        $endDate = Carbon::createFromFormat('Y-m', $this->period)->endOfMonth();
+
+        // 1. Ambil HANYA baris eksplisit yang ditandai sebagai WFO dan berstatus present/absent
+        $wfoPresences = \App\Models\Presence::where('employee_id', $this->employee->id)
+            ->whereRaw('LOWER(work_type) = ?', ['wfo'])
+            ->whereRaw("LOWER(status) IN ('present', 'absent')")
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->get();
+
+        $totalWFO = $wfoPresences->count();
+
+        // 2. Jika 0 hari WFO eksplisit (Full WFH, atau WFO tapi bolos tanpa direkam HRD) = Bypass
+        if ($totalWFO === 0) {
+            return [
+                'is_na' => true,
+                'total' => 0,
+                'on_time' => 0,
+                'rate' => 0
+            ];
+        }
+
+        // 3. Hanya present (bukan absent) dan is_late eksplist 0/false yang dihitung tepat waktu
+        $onTime = $wfoPresences->filter(function ($p) {
+            return strtolower($p->status) === 'present' && 
+                   ($p->is_late === false || $p->is_late === 0 || $p->is_late === '0');
+        })->count();
+
+        $rate = ($onTime / $totalWFO) * 100;
+
+        return [
+            'is_na' => false,
+            'total' => $totalWFO,
+            'on_time' => $onTime,
+            'rate' => round(max(0, min(100, $rate)), 2)
         ];
     }
 }
