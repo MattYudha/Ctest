@@ -60,11 +60,22 @@
                             <h6 class="fw-bold text-primary"><i class="bi bi-wallet2 me-2"></i>6. Buku Kas (Cashbook)</h6>
                             <p class="mb-0 text-muted"><strong>Sumber Penilaian:</strong> Modul Finance (Anti-Anomali).<br>
                             &bull; <strong>Tim Finance:</strong> Kecepatan input transaksi maksimal 2 Hari Kerja.<br>
-                            &bull; <strong>Non-Finance:</strong> Persentase klaim/kas bon yang disetujui (Klaim berstatus *Pending* tidak akan merusak skor).</p>
+                            &bull; <strong>Non-Finance:</strong> Persentase klaim/kas bon yang disetujui (Klaim berstatus <em>Pending</em> tidak merusak skor).</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="fw-bold text-primary"><i class="bi bi-geo-alt-fill me-2"></i>7. Check-in (WFO)</h6>
+                            <p class="mb-0 text-muted"><strong>Sumber Penilaian:</strong> Riwayat absensi khusus WFO.<br>
+                            Mengukur ketepatan waktu jam Check-in pada hari-hari yang memang dijadwalkan untuk WFO. Karyawan WFH/WFA murni (tanpa jadwal WFO sebulan penuh) akan mendapat N/A.</p>
                         </div>
                     </div>
-                    <div class="alert alert-warning mb-0 mt-2 py-2 px-3 border-0">
-                        <i class="bi bi-lightbulb-fill me-1"></i> <strong>Sistem Anti-Anomali (N/A):</strong> Jika seorang karyawan tidak memiliki kewajiban di bulan terkait (misal: 0 tugas, 0 pengajuan klaim, atau bukan tim Sales), sistem akan secara otomatis memberi status <strong>N/A</strong> dan menyebar bobotnya ke indikator lain agar gaji/skor karyawan tidak dirugikan.
+                    
+                    <div class="alert alert-info bg-opacity-10 border-info border-start border-4 border-end-0 border-top-0 border-bottom-0 shadow-sm mt-3 p-3">
+                        <h6 class="fw-bold text-info-emphasis mb-2"><i class="bi bi-diagram-3-fill me-2"></i>Skema Redistribusi Proporsional (Sistem Anti-Anomali N/A)</h6>
+                        <p class="mb-2 text-dark small">Jika seorang karyawan <strong>tidak memiliki akses/kewajiban</strong> pada sebuah indikator (misal: Role IT tidak memiliki Target Sales, atau tidak ada tugas bulan ini), maka indikator tersebut menjadi <strong>N/A (Hangus)</strong>.</p>
+                        <p class="mb-0 text-dark small">
+                            <strong>Bagaimana nasib bobot yang hangus?</strong> Sistem <strong>TIDAK</strong> mengurangi total nilai maksimal karyawan. Sistem akan secara otomatis dan adil mengalihkan sisa persentase bobot yang hangus tersebut ke indikator-indikator lain yang aktif milik karyawan secara proporsional. <br>
+                            <span class="text-muted fst-italic">Contoh: Jika bobot aktif tersisa 50%, dan skor karyawan sempurna (50 Poin), maka perhitungannya adalah (50 / 50) x 100% = Tetap mendapat 100% skor akhir.</span>
+                        </p>
                     </div>
                 </div>
             </div>
