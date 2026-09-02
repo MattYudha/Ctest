@@ -59,7 +59,9 @@
                         <div class="col-md-6 mb-3">
                             <h6 class="fw-bold text-primary"><i class="bi bi-wallet2 me-2"></i>6. Buku Kas (Cashbook)</h6>
                             <p class="mb-0 text-muted"><strong>Sumber Penilaian:</strong> Modul Finance (Anti-Anomali).<br>
-                            &bull; <strong>Tim Finance:</strong> Kecepatan input transaksi maksimal 2 Hari Kerja.<br>
+                            &bull; <strong>Tim Finance (SLA 2 Hari Kerja):</strong><br>
+                            <span class="ms-3 d-block text-success small mt-1"><i class="bi bi-check-circle-fill me-1"></i><strong>TEPAT WAKTU (Lulus):</strong> Jika selisih hari kerja antara <em>Tanggal Transaksi</em> dan <em>Tanggal Input (Sistem)</em> &lt;= 2 Hari. (Contoh: Transaksi hari Senin, di-input hari Senin, Selasa, atau maks Rabu).</span>
+                            <span class="ms-3 d-block text-danger small mt-1 mb-2"><i class="bi bi-x-circle-fill me-1"></i><strong>TELAT (Gagal):</strong> Jika selisih hari kerja &gt; 2 Hari. (Contoh: Transaksi hari Senin, tapi baru di-input hari Kamis atau bulan depannya).</span>
                             &bull; <strong>Non-Finance:</strong> Persentase klaim/kas bon yang disetujui (Klaim berstatus <em>Pending</em> tidak merusak skor).</p>
                         </div>
                         <div class="col-md-6 mb-3">

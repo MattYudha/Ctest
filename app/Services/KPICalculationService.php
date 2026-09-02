@@ -7,6 +7,7 @@ use App\Models\Presence;
 use App\Models\Task;
 use App\Models\LeaveRequest;
 use App\Models\Incident;
+use App\Models\Setting;
 use App\Models\Signature;
 use App\Models\EmployeeKPIRecord;
 use App\Models\KPI;
@@ -362,7 +363,7 @@ class KPICalculationService
             ['key' => 'checkin_wfo', 'label' => 'Check-in (WFO)', 'desc' => 'Tingkat kedatangan tepat waktu khusus jadwal WFO.', 'weight' => 0, 'applicable_roles' => ['*']],
         ];
 
-        $savedConfig = \App\Models\Setting::getValue('kpi_master_config');
+        $savedConfig = Setting::getValue('kpi_master_config');
         if ($savedConfig) {
             $parsed = json_decode($savedConfig, true);
             if (is_array($parsed)) {
@@ -419,6 +420,7 @@ class KPICalculationService
                 // Calculate actual rate
                 $rate = 0;
                 $raw = [];
+                $is_na = false;
                 switch ($indicator['key']) {
                     case 'presence':
                         $raw = $service->calculateCheckoutMetrics();

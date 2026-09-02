@@ -8,6 +8,8 @@ use App\Models\Presence;
 use App\Models\WorkLog;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use App\Models\FinancialTransaction;
+use App\Models\FinancialAccount;
 
 class RealTestingDataSeeder extends Seeder
 {
@@ -21,13 +23,14 @@ class RealTestingDataSeeder extends Seeder
         
         $this->command->info("Membuat data testing real untuk: " . $employee->fullname);
 
-        $now = Carbon::now();
+        // Kita set testing ke BULAN LALU (Agustus) untuk ngetest logic late-entry
+        $now = Carbon::now()->subMonth();
         $startOfMonth = $now->copy()->startOfMonth();
-        $endOfToday = $now->copy(); // Kita buat data sampai hari ini saja atau sampai akhir bulan
+        $endOfToday = $now->copy()->endOfMonth(); // Sampai akhir bulan lalu
         
         $period = CarbonPeriod::create($startOfMonth, $endOfToday);
         
-        // Hapus data lama di bulan ini agar bersih
+        // Hapus data lama di bulan lalu agar bersih
         Presence::where('employee_id', $employee->id)
             ->whereBetween('date', [$startOfMonth->format('Y-m-d'), $endOfToday->format('Y-m-d')])
             ->delete();
@@ -36,9 +39,18 @@ class RealTestingDataSeeder extends Seeder
             ->whereBetween('log_date', [$startOfMonth->format('Y-m-d'), $endOfToday->format('Y-m-d')])
             ->delete();
 
+        // Siapkan akun kas jika ada
+        $account = FinancialAccount::first();
+        if ($account && $employee->user) {
+            FinancialTransaction::where('created_by', $employee->user->id)
+                ->whereBetween('transaction_date', [$startOfMonth->format('Y-m-d'), $endOfToday->format('Y-m-d')])
+                ->delete();
+        }
+
         $workingDaysCount = 0;
         $checkoutCount = 0;
         $logCount = 0;
+        $cashbookCount = 0;
 
         foreach ($period as $date) {
             if ($date->isWeekday()) {
@@ -73,16 +85,38 @@ class RealTestingDataSeeder extends Seeder
                     ]);
                     $logCount++;
                 }
+
+                // --- BIKIN CASHBOOK (LATE ENTRY SIMULATION) ---
+                // Skenario: Bikin transaksi di bulan lalu, tapi telat nginput (di-input hari ini)
+                if ($account && $employee->user) {
+                    $isMissedCashbook = rand(1, 10) > 8; 
+                    if (!$isMissedCashbook) {
+                        FinancialTransaction::create([
+                            'account_id' => $account->id,
+                            'created_by' => $employee->user->id,
+                            'transaction_date' => $date->format('Y-m-d'), // Tanggal asli di bulan Agustus
+                            'description' => 'Transaksi dummy ' . $date->format('Y-m-d'),
+                            'amount' => 50000,
+                            'transaction_type' => 'debit',
+                            // Simulasi TELAT nginput (di-input bulan September / hari ini)
+                            'created_at' => Carbon::now()->format('Y-m-d H:i:s'), 
+                            'updated_at' => Carbon::now()->format('Y-m-d H:i:s')
+                        ]);
+                        $cashbookCount++;
+                    }
+                }
             }
         }
         
         $checkoutPercentage = $workingDaysCount > 0 ? ($checkoutCount / $workingDaysCount) * 100 : 0;
         $logPercentage = $workingDaysCount > 0 ? ($logCount / $workingDaysCount) * 100 : 0;
+        $cashbookPercentage = $workingDaysCount > 0 ? ($cashbookCount / $workingDaysCount) * 100 : 0;
         
-        $this->command->info("Data berhasil di-generate untuk bulan ini!");
+        $this->command->info("Data berhasil di-generate untuk bulan lalu (" . $startOfMonth->format('F Y') . ")!");
         $this->command->info("Total Hari Kerja: $workingDaysCount");
         $this->command->info("Kepatuhan Checkout: $checkoutCount / $workingDaysCount (" . round($checkoutPercentage, 2) . "%)");
         $this->command->info("Persentase Pengisian Log: $logCount / $workingDaysCount (" . round($logPercentage, 2) . "%)");
+        $this->command->info("Total Transaksi Kas: $cashbookCount (Dibuat seolah telat input di bulan ini)");
         
         $this->command->info("Silakan buka dashboard KPI karyawan ini untuk melihat hasilnya!");
     }
