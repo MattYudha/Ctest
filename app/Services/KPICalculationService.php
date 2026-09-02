@@ -289,7 +289,7 @@ class KPICalculationService
             }
 
             $transactions = \App\Models\FinancialTransaction::where('created_by', $this->employee->user->id)
-                ->whereBetween('created_at', [$startDate->format('Y-m-d 00:00:00'), $endDate->format('Y-m-d 23:59:59')])
+                ->whereBetween('transaction_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
                 ->get();
 
             $total = $transactions->count();
@@ -431,7 +431,7 @@ class KPICalculationService
                     case 'task':
                         $raw = $service->calculateTaskMetrics();
                         if ((int)($raw['total'] ?? 0) === 0) {
-                            $isApplicable = false;
+                            $is_na = true;
                         } else {
                             $rate = $raw['rate'] ?? 0;
                         }
@@ -439,7 +439,7 @@ class KPICalculationService
                     case 'sales':
                         $raw = $service->calculateSalesMetrics();
                         if ((int)($raw['total'] ?? 0) === 0) {
-                            $isApplicable = false;
+                            $is_na = true;
                         } else {
                             $rate = $raw['rate'] ?? 0;
                         }
@@ -447,7 +447,7 @@ class KPICalculationService
                     case 'letter':
                         $raw = $service->calculateLetterMetrics();
                         if ((int)($raw['total'] ?? 0) === 0) {
-                            $isApplicable = false;
+                            $is_na = true;
                         } else {
                             $rate = $raw['rate'] ?? 0;
                         }
@@ -455,7 +455,7 @@ class KPICalculationService
                     case 'cashbook':
                         $raw = $service->calculateCashbookMetrics();
                         if (!empty($raw['is_na'])) {
-                            $isApplicable = false; // Trigger N/A redistribution
+                            $is_na = true; // Trigger N/A redistribution
                         } else {
                             $rate = $raw['rate'] ?? 0;
                         }
@@ -463,22 +463,24 @@ class KPICalculationService
                     case 'checkin_wfo':
                         $raw = $service->calculateCheckinWFOMetrics();
                         if (!empty($raw['is_na'])) {
-                            $isApplicable = false; // Trigger N/A redistribution
+                            $is_na = true; // Trigger N/A redistribution
                         } else {
                             $rate = $raw['rate'] ?? 0;
                         }
                         break;
                 }
                 
-                if ($isApplicable) {
-                    $activeIndicators[] = [
-                        'key' => $indicator['key'],
-                        'label' => $indicator['label'],
-                        'desc' => $indicator['desc'] ?? '',
-                        'original_weight' => $indicator['weight'],
-                        'rate' => $rate,
-                        'raw' => $raw
-                    ];
+                $activeIndicators[] = [
+                    'key' => $indicator['key'],
+                    'label' => $indicator['label'],
+                    'desc' => $indicator['desc'] ?? '',
+                    'original_weight' => $indicator['weight'],
+                    'rate' => $is_na ? 0 : $rate,
+                    'raw' => $raw,
+                    'is_na' => $is_na
+                ];
+                
+                if (!$is_na) {
                     $totalActiveWeight += $indicator['weight'];
                 }
             }
@@ -503,10 +505,13 @@ class KPICalculationService
         $compositeScore = 0;
         $details = [];
         foreach ($activeIndicators as &$active) {
-            $newWeight = ($active['original_weight'] / $totalActiveWeight) * 100;
-            $active['actual_weight'] = round($newWeight, 2);
-            
-            $compositeScore += ($active['rate'] * ($newWeight / 100));
+            if (!empty($active['is_na'])) {
+                $active['actual_weight'] = 0;
+            } else {
+                $newWeight = ($active['original_weight'] / $totalActiveWeight) * 100;
+                $active['actual_weight'] = round($newWeight, 2);
+                $compositeScore += ($active['rate'] * ($newWeight / 100));
+            }
             $details[$active['key']] = $active;
         }
         

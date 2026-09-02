@@ -734,28 +734,34 @@
 
                     if (data.details && typeof data.details === 'object' && Object.keys(data.details).length > 0) {
                         Object.values(data.details).forEach(detail => {
+                            const isNa = detail.is_na === true;
                             const rate = parseFloat(detail.rate || 0);
                             const weight = parseFloat(detail.actual_weight || 0);
                             const point = (rate * (weight / 100)).toFixed(2);
                             
-                            let colorTheme = { bg: 'danger', text: 'danger', hex: '#fb7185' }; // Soft Rose
-                            if (rate >= 100) colorTheme = { bg: 'success', text: 'success', hex: '#34d399' }; // Soft Emerald
-                            else if (rate >= 75) colorTheme = { bg: 'warning', text: 'warning', hex: '#fbbf24' }; // Soft Amber
+                            let colorTheme = { bg: 'danger', text: 'danger', hex: '#fb7185' };
+                            if (isNa) colorTheme = { bg: 'secondary', text: 'secondary', hex: '#94a3b8' };
+                            else if (rate >= 100) colorTheme = { bg: 'success', text: 'success', hex: '#34d399' };
+                            else if (rate >= 75) colorTheme = { bg: 'warning', text: 'warning', hex: '#fbbf24' };
+
+                            const rateBadge = isNa ? 'N/A' : rate.toFixed(1) + '%';
+                            const pointLabel = isNa ? '+0.00 Poin (N/A)' : '+' + point + ' Poin';
+                            const opacityStyle = isNa ? 'opacity: 0.75; filter: grayscale(80%);' : '';
 
                             const html = `
-                            <div class="card border-0 rounded-4" style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03); border: 1px solid rgba(255, 255, 255, 0.5); overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.03)';">
+                            <div class="card border-0 rounded-4" style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03); border: 1px solid rgba(255, 255, 255, 0.5); overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease; ${opacityStyle}" onmouseover="if(!${isNa}){ this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.06)'; }" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.03)';">
                                 <div class="position-absolute top-0 start-0 h-100" style="width: 4px; background-color: ${colorTheme.hex};"></div>
                                 <div class="card-body p-3 ps-4">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <div class="fw-bold text-dark fs-6" style="font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;">${detail.label || 'Indikator'}</div>
-                                        <div class="badge rounded-pill bg-${colorTheme.bg} bg-opacity-10 text-${colorTheme.text} px-3 py-2 fw-bold" style="letter-spacing: 0.5px;">${rate.toFixed(1)}%</div>
+                                        <div class="badge rounded-pill bg-${colorTheme.bg} bg-opacity-10 text-${colorTheme.text} px-3 py-2 fw-bold" style="letter-spacing: 0.5px;">${rateBadge}</div>
                                     </div>
                                     <div class="d-flex justify-content-between align-items-center rounded-3 p-2 mt-3" style="background: rgba(241, 245, 249, 0.7);">
                                         <div class="text-secondary fw-medium" style="font-size: 0.75rem;">
                                             <i class="bi bi-calculator me-1 opacity-75"></i> ${rate.toFixed(1)} x ${weight}% Bobot
                                         </div>
                                         <div class="fw-bold" style="font-size: 0.85rem; color: #334155;">
-                                            +${point} Poin
+                                            ${pointLabel}
                                         </div>
                                     </div>
                                 </div>
