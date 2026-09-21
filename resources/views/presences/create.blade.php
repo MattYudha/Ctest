@@ -1577,22 +1577,51 @@
                 const fp = await FingerprintJS.load();
                 const result = await fp.get();
                 const meta = getDeviceMeta();
-                const stableFingerprint = result.visitorId + '|' + meta.os + '|' + meta.browser;
-
-                document.getElementById('fingerprint-' + mode).value = stableFingerprint;
-
+                
                 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                 document.getElementById('is_mobile-' + mode).value = isMobile ? '1' : '0';
 
                 const registeredDesktop = @json (auth()->user()->browser_fingerprint_desktop);
                 const registeredMobile = @json (auth()->user()->browser_fingerprint_mobile);
+                
+                const registeredFingerprint = isMobile ? registeredMobile : registeredDesktop;
 
+                // 1. Get raw hardware fingerprint from FingerprintJS
+                const hardwareVisitorId = result.visitorId;
+                const hardwareFingerprint = hardwareVisitorId + '|' + meta.os + '|' + meta.browser;
+                
+                // 2. Get local storage fingerprint
+                let localVisitorId = localStorage.getItem('device_visitor_id');
+                let localFingerprint = localVisitorId ? (localVisitorId + '|' + meta.os + '|' + meta.browser) : null;
+                
+                let finalFingerprintToSubmit = '';
                 let isVerified = false;
-                if (isMobile) {
-                    if (!registeredMobile || registeredMobile === stableFingerprint) isVerified = true;
+
+                if (!registeredFingerprint) {
+                    // Case 1: First time registration
+                    finalFingerprintToSubmit = hardwareFingerprint;
+                    localStorage.setItem('device_visitor_id', hardwareVisitorId); // Save to local storage for future fallback
+                    isVerified = true;
                 } else {
-                    if (!registeredDesktop || registeredDesktop === stableFingerprint) isVerified = true;
+                    // Case 2: Verification
+                    if (hardwareFingerprint === registeredFingerprint) {
+                        // Hardware fingerprint matches perfectly
+                        finalFingerprintToSubmit = hardwareFingerprint;
+                        localStorage.setItem('device_visitor_id', hardwareVisitorId); // Sync local storage just in case
+                        isVerified = true;
+                    } else if (localFingerprint && localFingerprint === registeredFingerprint) {
+                        // Hardware mismatch (iOS ITP changed it), BUT local storage matches!
+                        // This is our smart fallback
+                        finalFingerprintToSubmit = localFingerprint;
+                        isVerified = true;
+                    } else {
+                        // Both mismatch, it's truly a different/unrecognized device
+                        finalFingerprintToSubmit = hardwareFingerprint;
+                        isVerified = false;
+                    }
                 }
+
+                document.getElementById('fingerprint-' + mode).value = finalFingerprintToSubmit;
 
                 if (isVerified) {
                     if (statusEl)
