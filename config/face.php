@@ -7,10 +7,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | Default minimum cosine similarity required for a match.
-    | Set to 0.70 (70%) to accommodate various lighting conditions.
+    | Set to 0.45 (45%) according to InsightFace buffalo_l benchmark standards
+    | to accommodate various lighting and angle conditions.
     |
     */
-    'threshold' => env('FACE_RECOGNITION_THRESHOLD', 0.70),
+    'threshold' => env('FACE_RECOGNITION_THRESHOLD', 0.45),
 
     /*
     |--------------------------------------------------------------------------

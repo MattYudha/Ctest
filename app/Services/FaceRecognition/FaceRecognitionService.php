@@ -65,7 +65,7 @@ class FaceRecognitionService
 
             $currentDto = $this->generator->generate($imagePath);
             $similarity = $this->comparator->calculateSimilarity($profile->embedding, $currentDto->embedding);
-            $threshold = config('face.threshold', 0.70);
+            $threshold = config('face.threshold', 0.45);
 
             if ($similarity >= $threshold) {
                 DB::beginTransaction();
@@ -76,6 +76,8 @@ class FaceRecognitionService
                 ]);
                 DB::commit();
 
+                Log::info("Face recognition checkAttendance passed for user {$userId}: similarity={$similarity}, threshold={$threshold}");
+
                 return [
                     'success' => true, 
                     'similarity' => $similarity,
@@ -84,11 +86,13 @@ class FaceRecognitionService
                 ];
             }
 
+            Log::warning("Face recognition checkAttendance failed for user {$userId}: similarity={$similarity}, threshold={$threshold}");
+
             return [
                 'success' => false,
                 'similarity' => $similarity,
                 'threshold' => $threshold,
-                'message' => 'Face mismatch or similarity too low.',
+                'message' => 'Face mismatch or similarity too low. (Score: ' . round($similarity * 100, 1) . '%, Required: ' . round($threshold * 100, 1) . '%)',
             ];
 
         } catch (Exception $e) {
@@ -114,9 +118,10 @@ class FaceRecognitionService
 
             $currentDto = $this->generator->generate($imagePath);
             $similarity = $this->comparator->calculateSimilarity($profile->embedding, $currentDto->embedding);
-            $threshold = config('face.threshold', 0.70);
+            $threshold = config('face.threshold', 0.45);
 
             if ($similarity >= $threshold) {
+                Log::info("Face verification passed for user {$userId}: similarity={$similarity}, threshold={$threshold}");
                 return [
                     'success' => true, 
                     'similarity' => $similarity,
@@ -124,11 +129,13 @@ class FaceRecognitionService
                 ];
             }
 
+            Log::warning("Face verification failed for user {$userId}: similarity={$similarity}, threshold={$threshold}");
+
             return [
                 'success' => false,
                 'similarity' => $similarity,
                 'threshold' => $threshold,
-                'message' => 'Face mismatch or similarity too low.',
+                'message' => 'Face mismatch or similarity too low. (Score: ' . round($similarity * 100, 1) . '%, Required: ' . round($threshold * 100, 1) . '%)',
             ];
         } catch (Exception $e) {
             Log::error("Face Verification Error: " . $e->getMessage());

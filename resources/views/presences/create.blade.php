@@ -1295,6 +1295,7 @@
         function startFaceDetectionLoop(mode, videoEl, statusEl, videoContainer, previewContainer, previewImg) {
             let stage = 0; // 0: wait for face, 1: verify & countdown
             let isVerifying = false;
+            let verifiedPhotoData = null;
             
             // Blink State Machine Variables
             let eyeState = 'OPEN';
@@ -1344,11 +1345,16 @@
                                         statusEl.innerHTML = '<span class="badge bg-primary bg-opacity-10 text-primary rounded-3 px-3 py-2 fs-6 shadow-sm"><i class="bi bi-arrow-repeat"></i> Verifying Identity...</span>';
                                         
                                         const canvas = document.createElement('canvas');
-                                        canvas.width = videoEl.videoWidth;
-                                        canvas.height = videoEl.videoHeight;
+                                        const targetWidth = videoEl.videoWidth || 640;
+                                        const targetHeight = videoEl.videoHeight || 480;
+                                        canvas.width = targetWidth;
+                                        canvas.height = targetHeight;
                                         const tctx = canvas.getContext('2d');
-                                        tctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-                                        const photoData = canvas.toDataURL('image/jpeg', 0.8);
+                                        // Mirror horizontally to match enrollment orientation
+                                        tctx.translate(targetWidth, 0);
+                                        tctx.scale(-1, 1);
+                                        tctx.drawImage(videoEl, 0, 0, targetWidth, targetHeight);
+                                        const photoData = canvas.toDataURL('image/jpeg', 0.85);
                                         
                                         try {
                                             const response = await fetch('/api/face/verify', {
@@ -1364,9 +1370,12 @@
                                             if (result.success) {
                                                 stage = 1; // Verified! Move to blink check via MediaPipe
                                                 isVerifying = false;
-                                                statusEl.innerHTML = '<span class="badge bg-info bg-opacity-10 text-info rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap lh-sm"><i class="bi bi-eye"></i> Face Matched!<br>Please <strong>BLINK YOUR EYES</strong> to confirm...</span>';
+                                                verifiedPhotoData = photoData;
+                                                const scoreText = result.similarity ? ' (' + Math.round(result.similarity * 100) + '%)' : '';
+                                                statusEl.innerHTML = '<span class="badge bg-info bg-opacity-10 text-info rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap lh-sm"><i class="bi bi-eye"></i> Face Matched!' + scoreText + '<br>Please <strong>BLINK YOUR EYES</strong> to confirm...</span>';
                                             } else {
-                                                statusEl.innerHTML = '<span class="badge bg-danger bg-opacity-10 text-danger rounded-3 px-3 py-2 fs-6 shadow-sm"><i class="bi bi-x-circle me-1"></i> Face Not Recognized!</span>';
+                                                const scoreInfo = result.similarity ? ' (' + Math.round(result.similarity * 100) + '%)' : '';
+                                                statusEl.innerHTML = '<span class="badge bg-danger bg-opacity-10 text-danger rounded-3 px-3 py-2 fs-6 shadow-sm"><i class="bi bi-x-circle me-1"></i> Face Not Recognized' + scoreInfo + '!</span>';
                                                 setTimeout(() => {
                                                     isVerifying = false;
                                                     if (stage === 0) statusEl.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary rounded-3 px-3 py-2 fs-6 shadow-sm"><i class="bi bi-person-bounding-box me-1"></i> Detecting Face...</span>';
@@ -1483,19 +1492,18 @@
                             let countdown = 3;
                             statusEl.innerHTML = `<span class="badge bg-success bg-opacity-10 text-success rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-${countdown}-circle"></i> Liveness OK! Get Ready...</span>`;
                             
-                            const countdownInterval = setInterval(() => {
+                            const countdownInterval = setInterval(async () => {
                                 countdown--;
                                 if (countdown > 0) {
                                     statusEl.innerHTML = `<span class="badge bg-success bg-opacity-10 text-success rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-${countdown}-circle"></i> Liveness OK! Get Ready...</span>`;
                                 } else {
                                     clearInterval(countdownInterval);
                                     
-                                    statusEl.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-check-circle"></i> Identity Verified!</span>';
+                                    statusEl.innerHTML = '<span class="badge bg-primary bg-opacity-10 text-primary rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="spinner-border spinner-border-sm me-1"></i> Finalizing Identity...</span>';
 
                                     const canvas = document.createElement('canvas');
-                                    const targetWidth = 480;
-                                    const scale = targetWidth / videoEl.videoWidth;
-                                    const targetHeight = videoEl.videoHeight * scale;
+                                    const targetWidth = videoEl.videoWidth || 640;
+                                    const targetHeight = videoEl.videoHeight || 480;
 
                                     canvas.width = targetWidth;
                                     canvas.height = targetHeight;
@@ -1504,11 +1512,33 @@
                                     tctx.scale(-1, 1);
                                     tctx.drawImage(videoEl, 0, 0, targetWidth, targetHeight);
 
-                                    const photoData = canvas.toDataURL('image/jpeg', 0.8);
-                                    const photoInput = document.getElementById('photo_data-' + mode);
-                                    if (photoInput) photoInput.value = photoData;
+                                    const photoData = canvas.toDataURL('image/jpeg', 0.85);
 
-                                    previewImg.src = photoData;
+                                    // Verify fresh snapshot; fallback to verifiedPhotoData from Stage 0 if needed
+                                    let finalAcceptedPhoto = verifiedPhotoData || photoData;
+                                    try {
+                                        const finalResp = await fetch('/api/face/verify', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                            },
+                                            body: JSON.stringify({ image: photoData })
+                                        });
+                                        const finalResult = await finalResp.json();
+                                        if (finalResult.success) {
+                                            finalAcceptedPhoto = photoData;
+                                        }
+                                    } catch (e) {
+                                        console.warn('Final verification check failed, using verified snapshot:', e);
+                                    }
+
+                                    statusEl.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success rounded-3 px-3 py-2 fs-6 shadow-sm text-wrap"><i class="bi bi-check-circle"></i> Identity Verified!</span>';
+
+                                    const photoInput = document.getElementById('photo_data-' + mode);
+                                    if (photoInput) photoInput.value = finalAcceptedPhoto;
+
+                                    previewImg.src = finalAcceptedPhoto;
                                     videoContainer.style.display = 'none';
                                     previewContainer.style.display = 'block';
 
