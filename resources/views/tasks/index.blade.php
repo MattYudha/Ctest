@@ -33,11 +33,14 @@
                         $canManageTasks = \App\Constants\Roles::isAdmin($userRole) || $userRole === \App\Constants\Roles::MANAGER_UNIT_HEAD;
                     @endphp
 
-                    @if ($canManageTasks)
-                        <a href="{{ route('tasks.create') }}" class="btn btn-primary">
-                            <i class="bi bi-plus-circle me-1"></i> New Task
-                        </a>
-                    @endif
+                    <div class="d-flex align-items-center">
+                        <input type="month" id="month-filter" class="form-control me-3" style="width: 200px;" placeholder="Filter by Month">
+                        @if ($canManageTasks)
+                            <a href="{{ route('tasks.create') }}" class="btn btn-primary text-nowrap">
+                                <i class="bi bi-plus-circle me-1"></i> New Task
+                            </a>
+                        @endif
+                    </div>
                 </div>
 
                 {{-- Alert --}}
@@ -75,10 +78,15 @@
 @push('scripts')
 <script>
     $(function() {
-        $('#task-table').DataTable({
+        var table = $('#task-table').DataTable({
             processing: true,
             serverSide: true,
-            ajax: "{{ route('tasks.index') }}",
+            ajax: {
+                url: "{{ route('tasks.index') }}",
+                data: function (d) {
+                    d.month = $('#month-filter').val();
+                }
+            },
             columns: [
                 { data: 'title', name: 'title' },
                 { data: 'employee.fullname', name: 'employee.fullname', defaultContent: '<em>Unknown</em>' },
@@ -86,6 +94,10 @@
                 { data: 'status_badge', name: 'status', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
             ]
+        });
+
+        $('#month-filter').on('change', function() {
+            table.draw();
         });
 
         // delete confirmation standard

@@ -61,6 +61,19 @@ class TaskController extends Controller
                 }
             }
 
+            if ($request->filled('month')) {
+                // $request->month usually comes as "YYYY-MM" from <input type="month">
+                $monthStr = $request->month;
+                try {
+                    $startOfMonth = \Carbon\Carbon::createFromFormat('Y-m', $monthStr)->startOfMonth();
+                    $endOfMonth = \Carbon\Carbon::createFromFormat('Y-m', $monthStr)->endOfMonth();
+                    
+                    $query->whereBetween('due_date', [$startOfMonth->format('Y-m-d'), $endOfMonth->format('Y-m-d')]);
+                } catch (\Exception $e) {
+                    // Ignore invalid format
+                }
+            }
+
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('action', function($row){
