@@ -40,10 +40,17 @@
                 @csrf
                 @method('PUT')
                 
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="bi bi-info-circle-fill me-2 fs-4"></i>
+                    <div>
+                        <strong>Perhatian:</strong> Pengisian log dikunci berdasarkan tanggal awal pembuatan log. Sistem KPI menghitung performa log berdasarkan <em>Hari Unik (Unique Day)</em>, sehingga Anda tidak bisa mengubah tanggal log ini ke hari lain untuk merapel performa hari sebelumnya.
+                    </div>
+                </div>
+
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Tanggal Pengisian</label>
-                        <input type="date" name="log_date" class="form-control" value="{{ \Carbon\Carbon::parse($work_log->log_date)->format('Y-m-d') }}" required>
+                        <input type="date" name="log_date" class="form-control bg-light" value="{{ \Carbon\Carbon::parse($work_log->log_date)->format('Y-m-d') }}" readonly required style="cursor: not-allowed;">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Hubungkan dengan Tugas (Task)</label>

@@ -38,10 +38,18 @@
 
             <form action="{{ route('work-logs.store') }}" method="POST" enctype="multipart/form-data" id="form-log">
                 @csrf
+                
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="bi bi-info-circle-fill me-2 fs-4"></i>
+                    <div>
+                        <strong>Perhatian:</strong> Pengisian log dikunci pada hari ini (tanggal sekarang). Sistem KPI menghitung performa log berdasarkan <em>Hari Unik (Unique Day)</em>. Jika Anda memiliki banyak aktivitas di hari yang berbeda namun lupa mengisi, Anda tidak bisa merapel/mengubah tanggalnya ke hari yang lewat. Silakan rangkum semua aktivitas Anda hari ini, sistem tetap akan mendeteksinya sebagai kehadiran log untuk hari ini.
+                    </div>
+                </div>
+
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Tanggal Pengisian</label>
-                        <input type="date" name="log_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                        <input type="date" name="log_date" class="form-control bg-light" value="{{ date('Y-m-d') }}" readonly required style="cursor: not-allowed;">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Hubungkan dengan Tugas (Task)</label>
